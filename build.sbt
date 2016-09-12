@@ -4,13 +4,14 @@ version := "0.0.1"
 scalaVersion := "2.11.8"
 
 libraryDependencies ++= {
-  val akkaV = "2.4.4"
+  val akkaV = "2.4.7"
   val scalaTestV = "3.0.0-M15"
   val slickVersion = "3.1.1"
   val circeV = "0.4.1"
   Seq(
     "com.typesafe.akka" %% "akka-http-core" % akkaV,
-    "com.typesafe.akka" %% "akka-http-experimental" % akkaV,
+    "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaV,
+
     "de.heikoseeberger" %% "akka-http-circe" % "1.6.0",
 
     "com.typesafe.slick" %% "slick" % slickVersion,
@@ -27,9 +28,13 @@ libraryDependencies ++= {
     "io.circe" %% "circe-generic" % circeV,
     "io.circe" %% "circe-parser" % circeV,
 
+    "org.sangria-graphql" %% "sangria" % "0.7.3",
+
     "org.scalatest" %% "scalatest" % scalaTestV % "test",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaV % "test",
-    "ru.yandex.qatools.embed" % "postgresql-embedded" % "1.13" % "test"
+
+    "org.sangria-graphql" %% "sangria" % "0.7.0",
+    "org.sangria-graphql" %% "sangria-spray-json" % "0.3.1"
   )
 }
 
