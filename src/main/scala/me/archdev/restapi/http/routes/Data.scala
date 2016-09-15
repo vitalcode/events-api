@@ -1,7 +1,13 @@
 package me.archdev.restapi.http.routes
 
-import sangria.schema.{DeferredResolver, Deferred}
+import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.{ElasticClient, HitAs, IndexType, RichSearchHit}
+import org.elasticsearch.action.get.GetResponse
+import org.elasticsearch.action.search.SearchResponse
+import org.elasticsearch.index.get.GetField
+import sangria.schema.{Deferred, DeferredResolver}
 
+import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -11,36 +17,45 @@ object Episode extends Enumeration {
 
 trait Character {
   def id: String
+
   def name: Option[String]
+
   def friends: List[String]
+
   def appearsIn: List[Episode.Value]
 }
 
 case class Human(
-  id: String,
-  name: Option[String],
-  friends: List[String],
-  appearsIn: List[Episode.Value],
-  homePlanet: Option[String]) extends Character
+                  id: String,
+                  name: Option[String],
+                  friends: List[String],
+                  appearsIn: List[Episode.Value],
+                  homePlanet: Option[String]) extends Character
 
 case class Droid(
-  id: String,
-  name: Option[String],
-  friends: List[String],
-  appearsIn: List[Episode.Value],
-  primaryFunction: Option[String]) extends Character
+                  id: String,
+                  name: Option[String],
+                  friends: List[String],
+                  appearsIn: List[Episode.Value],
+                  primaryFunction: Option[String]) extends Character
+
+case class Event(
+                  id: String,
+                  category: Seq[String],
+                  description: Seq[String]
+                )
 
 /**
- * Instructs sangria to postpone the expansion of the friends list to the last responsible moment and then batch
- * all collected defers together.
- */
+  * Instructs sangria to postpone the expansion of the friends list to the last responsible moment and then batch
+  * all collected defers together.
+  */
 case class DeferFriends(friends: List[String]) extends Deferred[List[Option[Character]]]
 
 /**
- * Resolves the lists of friends collected during the query execution.
- * For this demonstration the implementation is pretty simplistic, but in real-world scenario you
- * probably want to batch all of the deferred values in one efficient fetch.
- */
+  * Resolves the lists of friends collected during the query execution.
+  * For this demonstration the implementation is pretty simplistic, but in real-world scenario you
+  * probably want to batch all of the deferred values in one efficient fetch.
+  */
 class FriendsResolver extends DeferredResolver[Any] {
   override def resolve(deferred: Vector[Deferred[Any]], ctx: Any) = deferred map {
     case DeferFriends(friendIds) =>
@@ -49,8 +64,20 @@ class FriendsResolver extends DeferredResolver[Any] {
   }
 }
 
-class CharacterRepo {
+
+class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
+
   import CharacterRepo._
+
+  implicit object CharacterHitAs extends HitAs[Event] {
+    override def as(hit: RichSearchHit): Event = {
+      Event(
+        id = hit.id,
+        category = hit.sourceAsMap("category").asInstanceOf[java.util.ArrayList[String]].toSeq,
+        description = hit.sourceAsMap("description").asInstanceOf[java.util.ArrayList[String]].toSeq
+      )
+    }
+  }
 
   def getHero(episode: Option[Episode.Value]) =
     episode flatMap (_ => getHuman("1000")) getOrElse droids.last
@@ -58,6 +85,29 @@ class CharacterRepo {
   def getHuman(id: String): Option[Human] = humans.find(c => c.id == id)
 
   def getDroid(id: String): Option[Droid] = droids.find(c => c.id == id)
+
+  def getEvent(eventId: String, fieldSet: String*): Option[Event] = {
+
+    val response = client.execute {
+      search in indexType query {
+        termQuery("_id", eventId)
+      } sourceInclude(fieldSet:_*)
+    }.await
+
+    if (!response.isEmpty) Some(response.as[Event].apply(0))
+    else None
+  }
+
+  def getEvents(fieldSet: String*): Option[Seq[Event]] = {
+
+    val response = client.execute {
+      search in indexType start 0 limit 10 sourceInclude(fieldSet:_*)
+    }.await
+
+    if (!response.isEmpty) Some(response.as[Event])
+    else None
+  }
+
 }
 
 object CharacterRepo {

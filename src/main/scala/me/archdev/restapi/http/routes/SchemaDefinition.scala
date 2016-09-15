@@ -5,8 +5,8 @@ import sangria.schema._
 import scala.concurrent.Future
 
 /**
- * Defines a GraphQL schema for the current project
- */
+  * Defines a GraphQL schema for the current project
+  */
 object SchemaDefinition {
   val EpisodeEnum = EnumType(
     "Episode",
@@ -87,6 +87,25 @@ object SchemaDefinition {
         resolve = _.value.primaryFunction)
     ))
 
+
+  val Event = ObjectType(
+    "Event",
+    "Just Event",
+    fields = fields[Unit, Event](
+      Field("id", StringType,
+        Some("The id of the droid."),
+        tags = ProjectionName("_id") :: Nil,
+        resolve = _.value.id),
+      Field("category", OptionType(ListType(StringType)),
+        Some("event category"),
+        resolve = _.value.category),
+      Field("description", OptionType(ListType(StringType)),
+        Some("event description"),
+        resolve = _.value.description
+      )
+    )
+  )
+
   val ID = Argument("id", StringType, description = "id of the character")
 
   val EpisodeArg = Argument("episode", OptionInputType(EpisodeEnum),
@@ -102,8 +121,14 @@ object SchemaDefinition {
         resolve = ctx => ctx.ctx.getHuman(ctx arg ID)),
       Field("droid", Droid,
         arguments = ID :: Nil,
-        resolve = Projector((ctx, f) => ctx.ctx.getDroid(ctx arg ID).get))
-    ))
+        resolve = Projector((ctx, f) => ctx.ctx.getDroid(ctx arg ID).get)),
+      Field("event", Event,
+        arguments = ID :: Nil,
+        resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
+      Field("events", OptionType(ListType(Event)),
+        resolve = ctx => ctx.ctx.getEvents().get)
+    )
+  )
 
   val StarWarsSchema = Schema(Query)
 }

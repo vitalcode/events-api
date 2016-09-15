@@ -1,5 +1,6 @@
 package me.archdev
 
+import com.sksamuel.elastic4s.{ElasticClient, IndexType}
 import me.archdev.restapi.http.routes.{CharacterRepo, FriendsResolver, SchemaDefinition}
 import org.scalatest.{Matchers, WordSpec}
 import sangria.ast.Document
@@ -8,11 +9,19 @@ import sangria.macros._
 import sangria.marshalling.sprayJson._
 import spray.json._
 
+import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.{ElasticClient, IndexType}
+
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class SchemaSpec extends WordSpec with Matchers {
+
+  // TODO
+  implicit val indexType: IndexType = "indexName" / "type"
+  implicit val elasticClient = ElasticClient.local
+
   "StartWars Schema" should {
     "correctly identify R2-D2 as the hero of the Star Wars Saga" in {
       val query =
@@ -24,7 +33,7 @@ class SchemaSpec extends WordSpec with Matchers {
          }
        """
 
-      executeQuery(query) should be (
+      executeQuery(query) should be(
         """
          {
            "data": {
@@ -33,7 +42,7 @@ class SchemaSpec extends WordSpec with Matchers {
              }
            }
          }
-       """.parseJson)
+        """.parseJson)
     }
 
     "allow to fetch Han Solo using his ID provided through variables" in {
@@ -50,7 +59,7 @@ class SchemaSpec extends WordSpec with Matchers {
          }
        """
 
-      executeQuery(query, vars = JsObject("humanId" → JsString("1002"))) should be (
+      executeQuery(query, vars = JsObject("humanId" → JsString("1002"))) should be(
         """
          {
            "data": {

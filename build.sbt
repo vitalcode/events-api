@@ -29,6 +29,8 @@ libraryDependencies ++= {
     "io.circe" %% "circe-parser" % circeV,
 
     "org.sangria-graphql" %% "sangria" % "0.7.3",
+    "com.sksamuel.elastic4s" %% "elastic4s-core" % "1.7.5",
+    "com.sksamuel.elastic4s" %% "elastic4s-testkit" % "1.7.5" % "test",
 
     "org.scalatest" %% "scalatest" % scalaTestV % "test",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaV % "test",
