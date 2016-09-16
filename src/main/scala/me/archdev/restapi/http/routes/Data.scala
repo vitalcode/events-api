@@ -1,10 +1,18 @@
 package me.archdev.restapi.http.routes
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticClient, HitAs, IndexType, RichSearchHit}
+import com.sksamuel.elastic4s._
 import org.elasticsearch.action.get.GetResponse
 import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.index.get.GetField
+import org.elasticsearch.index.query
+import org.elasticsearch.index.query.MatchQueryBuilder
+import org.elasticsearch.index.query.MatchQueryBuilder.Operator
+import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type
+import org.elasticsearch.search.sort.SortOrder
 import sangria.schema.{Deferred, DeferredResolver}
 
 import scala.collection.JavaConversions._
@@ -42,7 +50,8 @@ case class Droid(
 case class Event(
                   id: String,
                   category: Seq[String],
-                  description: Seq[String]
+                  description: Seq[String],
+                  from: Seq[LocalDateTime]
                 )
 
 /**
@@ -74,7 +83,8 @@ class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
       Event(
         id = hit.id,
         category = hit.sourceAsMap("category").asInstanceOf[java.util.ArrayList[String]].toSeq,
-        description = hit.sourceAsMap("description").asInstanceOf[java.util.ArrayList[String]].toSeq
+        description = hit.sourceAsMap("description").asInstanceOf[java.util.ArrayList[String]].toSeq,
+        from = hit.sourceAsMap("from").asInstanceOf[java.util.ArrayList[String]].map(d => LocalDateTime.parse(d, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
       )
     }
   }
@@ -91,23 +101,41 @@ class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
     val response = client.execute {
       search in indexType query {
         termQuery("_id", eventId)
-      } sourceInclude(fieldSet:_*)
+      } sourceInclude (fieldSet: _*)
     }.await
 
     if (!response.isEmpty) Some(response.as[Event].apply(0))
     else None
   }
 
-  def getEvents(fieldSet: String*): Option[Seq[Event]] = {
+
+  def appendQuery[T](date: Option[T], must: Seq[QueryDefinition], fn: T => QueryDefinition): Seq[QueryDefinition] = {
+    date.map(e => must :+ fn(e)) getOrElse must
+  }
+
+  def getEvents(date: Option[LocalDateTime],
+                clue: Option[String],
+                category: Option[String],
+                start: Int,
+                limit: Int,
+                fieldSet: String*): Option[Seq[Event]] = {
+
+    var mustQuery = Seq.empty[QueryDefinition]
+    mustQuery = appendQuery(date, mustQuery, (d: LocalDateTime) => rangeQuery("from") includeLower true from d.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+    mustQuery = appendQuery(clue, mustQuery, (c: String) => multiMatchQuery(c) fields("description", "title", "venue") operator "and")
+    mustQuery = appendQuery(category, mustQuery, (cat: String) => termQuery("category", cat))
 
     val response = client.execute {
-      search in indexType start 0 limit 10 sourceInclude(fieldSet:_*)
+      search in indexType query {
+        must(mustQuery: _*)
+      } sort {
+        field sort "from" order SortOrder.ASC mode MultiMode.Min
+      } start start limit limit sourceInclude (fieldSet: _*) sort()
     }.await
 
     if (!response.isEmpty) Some(response.as[Event])
     else None
   }
-
 }
 
 object CharacterRepo {
@@ -159,3 +187,4 @@ object CharacterRepo {
       primaryFunction = Some("Astromech"))
   )
 }
+

@@ -1,8 +1,15 @@
 package me.archdev.restapi.http.routes
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+import sangria.marshalling.DateSupport
 import sangria.schema._
+import sangria.validation.ValueCoercionViolation
+import sangria.ast
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 /**
   * Defines a GraphQL schema for the current project
@@ -88,6 +95,25 @@ object SchemaDefinition {
     ))
 
 
+  case object DateCoercionViolation extends ValueCoercionViolation("Date value expected")
+
+  def parseDate(s: String) = Try(LocalDateTime.parse(s, DateTimeFormatter.ISO_LOCAL_DATE_TIME)) match {
+    case Success(date) => Right(date)
+    case Failure(_) => Left(DateCoercionViolation)
+  }
+
+  val DateType = ScalarType[LocalDateTime]("Date",
+    description = Some("An example of date scalar type"),
+    coerceOutput = (d, _) ⇒ d.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+    coerceUserInput = {
+      case s: String ⇒ parseDate(s)
+      case _ ⇒ Left(DateCoercionViolation)
+    },
+    coerceInput = {
+      case ast.StringValue(s, _, _) ⇒ parseDate(s)
+      case _ ⇒ Left(DateCoercionViolation)
+    })
+
   val Event = ObjectType(
     "Event",
     "Just Event",
@@ -101,12 +127,21 @@ object SchemaDefinition {
         resolve = _.value.category),
       Field("description", OptionType(ListType(StringType)),
         Some("event description"),
-        resolve = _.value.description
+        resolve = _.value.description),
+      Field("from", OptionType(ListType(DateType)),
+        Some("event from"),
+        resolve = _.value.from
       )
     )
   )
 
+
   val ID = Argument("id", StringType, description = "id of the character")
+  val Date = Argument("date", OptionInputType(DateType), description = "event search date")
+  val Clue = Argument("clue", OptionInputType(StringType), description = "event search clue")
+  val Category = Argument("category", OptionInputType(StringType), description = "event search category")
+  val Start = Argument("start", IntType, description = "event list start")
+  val Limit = Argument("limit", IntType, description = "event list limit")
 
   val EpisodeArg = Argument("episode", OptionInputType(EpisodeEnum),
     description = "If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.")
@@ -126,7 +161,13 @@ object SchemaDefinition {
         arguments = ID :: Nil,
         resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
       Field("events", OptionType(ListType(Event)),
-        resolve = ctx => ctx.ctx.getEvents().get)
+        arguments = Date :: Clue :: Category :: Start :: Limit :: Nil,
+        resolve = ctx => ctx.ctx.getEvents(
+          date = ctx.arg(Date),
+          clue = ctx.arg(Clue),
+          category = ctx.arg(Category),
+          start = ctx.arg(Start),
+          limit = ctx.arg(Limit)).get)
     )
   )
 
