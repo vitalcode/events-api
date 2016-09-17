@@ -135,6 +135,19 @@ object SchemaDefinition {
     )
   )
 
+  val Page = ObjectType(
+    "Page",
+    "List page",
+    fields = fields[Unit, Page[Event]](
+      Field("total", IntType,
+        Some("page items total count"),
+        resolve = _.value.total),
+      Field("items", OptionType(ListType(Event)),
+        Some("page items"),
+        resolve = _.value.items)
+    )
+  )
+
 
   val ID = Argument("id", StringType, description = "id of the character")
   val Date = Argument("date", OptionInputType(DateType), description = "event search date")
@@ -160,7 +173,7 @@ object SchemaDefinition {
       Field("event", Event,
         arguments = ID :: Nil,
         resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
-      Field("events", OptionType(ListType(Event)),
+      Field("events", Page,
         arguments = Date :: Clue :: Category :: Start :: Limit :: Nil,
         resolve = ctx => ctx.ctx.getEvents(
           date = ctx.arg(Date),

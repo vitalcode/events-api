@@ -54,6 +54,11 @@ case class Event(
                   from: Seq[LocalDateTime]
                 )
 
+case class Page[T](
+                  total: Int,
+                  items: Seq[T]
+               )
+
 /**
   * Instructs sangria to postpone the expansion of the friends list to the last responsible moment and then batch
   * all collected defers together.
@@ -118,7 +123,7 @@ class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
                 category: Option[String],
                 start: Int,
                 limit: Int,
-                fieldSet: String*): Option[Seq[Event]] = {
+                fieldSet: String*): Option[Page[Event]] = {
 
     var mustQuery = Seq.empty[QueryDefinition]
     mustQuery = appendQuery(date, mustQuery, (d: LocalDateTime) => rangeQuery("from") includeLower true from d.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
@@ -133,7 +138,7 @@ class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
       } start start limit limit sourceInclude (fieldSet: _*) sort()
     }.await
 
-    if (!response.isEmpty) Some(response.as[Event])
+    if (!response.isEmpty) Some(Page(response.totalHits.toInt, response.as[Event]))
     else None
   }
 }
