@@ -1,14 +1,13 @@
 package me.archdev
 
 import com.sksamuel.elastic4s.{ElasticClient, IndexType}
-import me.archdev.restapi.http.routes.{CharacterRepo, FriendsResolver, SchemaDefinition}
+import me.archdev.restapi.http.routes.{EventRepo, EventRepo$, FriendsResolver, SchemaDefinition}
 import org.scalatest.{Matchers, WordSpec}
 import sangria.ast.Document
 import sangria.execution.Executor
 import sangria.macros._
 import sangria.marshalling.sprayJson._
 import spray.json._
-
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{ElasticClient, IndexType}
 
@@ -87,9 +86,9 @@ class SchemaSpec extends WordSpec with Matchers {
   }
 
   def executeQuery(query: Document, vars: JsObject = JsObject.empty) = {
-    val futureResult = Executor.execute(SchemaDefinition.StarWarsSchema, query,
+    val futureResult = Executor.execute(SchemaDefinition.EventSchema, query,
       variables = vars,
-      userContext = new CharacterRepo,
+      userContext = new EventRepo,
       deferredResolver = new FriendsResolver)
 
     Await.result(futureResult, 10.seconds)

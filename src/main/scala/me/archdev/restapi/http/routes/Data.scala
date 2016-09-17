@@ -74,14 +74,14 @@ class FriendsResolver extends DeferredResolver[Any] {
   override def resolve(deferred: Vector[Deferred[Any]], ctx: Any) = deferred map {
     case DeferFriends(friendIds) =>
       Future.fromTry(Try(
-        friendIds map (id => CharacterRepo.humans.find(_.id == id) orElse CharacterRepo.droids.find(_.id == id))))
+        friendIds map (id => EventRepo.humans.find(_.id == id) orElse EventRepo.droids.find(_.id == id))))
   }
 }
 
 
-class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
+class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
 
-  import CharacterRepo._
+  import EventRepo._
 
   implicit object CharacterHitAs extends HitAs[Event] {
     override def as(hit: RichSearchHit): Event = {
@@ -143,7 +143,7 @@ class CharacterRepo(implicit client: ElasticClient, indexType: IndexType) {
   }
 }
 
-object CharacterRepo {
+object EventRepo {
   val humans = List(
     Human(
       id = "1000",

@@ -47,7 +47,7 @@ class GrahpQL(val authService: AuthService,
 
           // query parsed successfully, time to execute it!
           case Success(queryAst) ⇒
-            complete(Executor.execute(SchemaDefinition.StarWarsSchema, queryAst, new CharacterRepo,
+            complete(Executor.execute(SchemaDefinition.EventSchema, queryAst, new EventRepo,
               operationName = operation,
               variables = vars,
               deferredResolver = new FriendsResolver)

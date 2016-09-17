@@ -160,7 +160,7 @@ object SchemaDefinition {
     description = "If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.")
 
   val Query = ObjectType(
-    "Query", fields[CharacterRepo, Unit](
+    "Query", fields[EventRepo, Unit](
       Field("hero", Character,
         arguments = EpisodeArg :: Nil,
         resolve = (ctx) => ctx.ctx.getHero(ctx.arg(EpisodeArg))),
@@ -184,5 +184,5 @@ object SchemaDefinition {
     )
   )
 
-  val StarWarsSchema = Schema(Query)
+  val EventSchema = Schema(Query)
 }
