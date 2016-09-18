@@ -8,6 +8,7 @@ libraryDependencies ++= {
   val scalaTestV = "3.0.0-M15"
   val slickVersion = "3.1.1"
   val circeV = "0.4.1"
+  val eventsModelV = "0.0.1"
   Seq(
     "com.typesafe.akka" %% "akka-http-core" % akkaV,
     "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaV,
@@ -36,13 +37,17 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-testkit" % akkaV % "test",
 
     "org.sangria-graphql" %% "sangria" % "0.7.0",
-    "org.sangria-graphql" %% "sangria-spray-json" % "0.3.1"
+    "org.sangria-graphql" %% "sangria-spray-json" % "0.3.1",
+
+    "vitalcode" %% "events-model" % eventsModelV
   )
 }
 
 Revolver.settings
 enablePlugins(JavaAppPackaging)
 enablePlugins(DockerPlugin)
+
+parallelExecution in Test := false
 
 dockerExposedPorts := Seq(9000)
 dockerEntrypoint := Seq("bin/%s" format executableScriptName.value, "-Dconfig.resource=docker.conf")

@@ -14,6 +14,8 @@ import org.elasticsearch.index.query.MatchQueryBuilder.Operator
 import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type
 import org.elasticsearch.search.sort.SortOrder
 import sangria.schema.{Deferred, DeferredResolver}
+import uk.vitalcode.events.model.Category
+import uk.vitalcode.events.model.Category.Category
 
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
@@ -49,7 +51,7 @@ case class Droid(
 
 case class Event(
                   id: String,
-                  category: Seq[String],
+                  category: Seq[Category],
                   description: Seq[String],
                   from: Seq[LocalDateTime]
                 )
@@ -87,7 +89,7 @@ class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
     override def as(hit: RichSearchHit): Event = {
       Event(
         id = hit.id,
-        category = hit.sourceAsMap("category").asInstanceOf[java.util.ArrayList[String]].toSeq,
+        category = hit.sourceAsMap("category").asInstanceOf[java.util.ArrayList[String]].map(c => Category.withName(c.toUpperCase)), // TODO Use upper case category in ES
         description = hit.sourceAsMap("description").asInstanceOf[java.util.ArrayList[String]].toSeq,
         from = hit.sourceAsMap("from").asInstanceOf[java.util.ArrayList[String]].map(d => LocalDateTime.parse(d, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
       )
@@ -120,7 +122,7 @@ class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
 
   def getEvents(date: Option[LocalDateTime],
                 clue: Option[String],
-                category: Option[String],
+                category: Option[Category],
                 start: Int,
                 limit: Int,
                 fieldSet: String*): Option[Page[Event]] = {
@@ -128,7 +130,7 @@ class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
     var mustQuery = Seq.empty[QueryDefinition]
     mustQuery = appendQuery(date, mustQuery, (d: LocalDateTime) => rangeQuery("from") includeLower true from d.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
     mustQuery = appendQuery(clue, mustQuery, (c: String) => multiMatchQuery(c) fields("description", "title", "venue") operator "and")
-    mustQuery = appendQuery(category, mustQuery, (cat: String) => termQuery("category", cat))
+    mustQuery = appendQuery(category, mustQuery, (cat: Category) => termQuery("category", cat.toString.toLowerCase)) // TODO Use upper case category in ES
 
     val response = client.execute {
       search in indexType query {

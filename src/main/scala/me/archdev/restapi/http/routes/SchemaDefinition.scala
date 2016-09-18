@@ -10,6 +10,8 @@ import sangria.ast
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+import uk.vitalcode.events.model.Category
+import uk.vitalcode.events.model.Category.Category
 
 /**
   * Defines a GraphQL schema for the current project
@@ -102,6 +104,16 @@ object SchemaDefinition {
     case Failure(_) => Left(DateCoercionViolation)
   }
 
+  val EventCategoryEnum = EnumType[Category](
+    "EventCategory",
+    Some("Event category"),
+    Category.values.toList.map(category =>
+      EnumValue(category.toString,
+        value = category,
+        description = Some(s"${category.toString} event category")))
+  )
+
+
   val DateType = ScalarType[LocalDateTime]("Date",
     description = Some("An example of date scalar type"),
     coerceOutput = (d, _) ⇒ d.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
@@ -122,7 +134,7 @@ object SchemaDefinition {
         Some("The id of the droid."),
         tags = ProjectionName("_id") :: Nil,
         resolve = _.value.id),
-      Field("category", OptionType(ListType(StringType)),
+      Field("category", OptionType(ListType(EventCategoryEnum)),
         Some("event category"),
         resolve = _.value.category),
       Field("description", OptionType(ListType(StringType)),
@@ -152,7 +164,7 @@ object SchemaDefinition {
   val ID = Argument("id", StringType, description = "id of the character")
   val Date = Argument("date", OptionInputType(DateType), description = "event search date")
   val Clue = Argument("clue", OptionInputType(StringType), description = "event search clue")
-  val Category = Argument("category", OptionInputType(StringType), description = "event search category")
+  val CategoryArg = Argument("category", OptionInputType(EventCategoryEnum), description = "event search category")
   val Start = Argument("start", IntType, description = "event list start")
   val Limit = Argument("limit", IntType, description = "event list limit")
 
@@ -174,11 +186,11 @@ object SchemaDefinition {
         arguments = ID :: Nil,
         resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
       Field("events", Page,
-        arguments = Date :: Clue :: Category :: Start :: Limit :: Nil,
+        arguments = Date :: Clue :: CategoryArg :: Start :: Limit :: Nil,
         resolve = ctx => ctx.ctx.getEvents(
           date = ctx.arg(Date),
           clue = ctx.arg(Clue),
-          category = ctx.arg(Category),
+          category = ctx.arg(CategoryArg),
           start = ctx.arg(Start),
           limit = ctx.arg(Limit)).get)
     )

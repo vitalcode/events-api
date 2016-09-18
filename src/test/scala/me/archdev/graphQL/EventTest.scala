@@ -25,7 +25,7 @@ class EventTest extends WordSpec with Matchers with ElasticTest {
          {
            "data": {
              "event": {
-               "category": ["family"],
+               "category": ["FAMILY"],
                "description": ["line1: event1", "line2: event1", "line3: event1"],
                "from": ["2016-01-06T11:00:00"]
              }
