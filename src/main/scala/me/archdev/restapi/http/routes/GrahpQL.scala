@@ -4,10 +4,9 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri, IndexType}
 import me.archdev.restapi.http.SecurityDirectives
-import me.archdev.restapi.services.{AuthService, UsersService}
+import me.archdev.restapi.services.AuthService
+import me.archdev.restapi.utils.Config
 import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
 import sangria.marshalling.sprayJson._
 import sangria.parser.QueryParser
@@ -17,8 +16,8 @@ import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 class GrahpQL(val authService: AuthService,
-              usersService: UsersService
-             )(implicit executionContext: ExecutionContext) extends SecurityDirectives {
+              eventRepo: EventRepo
+             )(implicit executionContext: ExecutionContext) extends SecurityDirectives with Config {
 
   val route: Route =
     (post & path("graphql")) {
@@ -37,17 +36,11 @@ class GrahpQL(val authService: AuthService,
           case _ ⇒ JsObject.empty
         }
 
-        // TODO
-        val uri = ElasticsearchClientUri("elasticsearch://localhost:9300")
-        implicit val client = ElasticClient.remote(uri)
-
-        implicit val indexType: IndexType = "test_index" / "events"
-
         QueryParser.parse(query) match {
 
           // query parsed successfully, time to execute it!
           case Success(queryAst) ⇒
-            complete(Executor.execute(SchemaDefinition.EventSchema, queryAst, new EventRepo,
+            complete(Executor.execute(SchemaDefinition.EventSchema, queryAst, eventRepo,
               operationName = operation,
               variables = vars,
               deferredResolver = new FriendsResolver)
