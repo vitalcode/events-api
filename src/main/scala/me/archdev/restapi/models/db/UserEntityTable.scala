@@ -17,5 +17,4 @@ trait UserEntityTable {
   }
 
   protected val users = TableQuery[Users]
-
 }

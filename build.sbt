@@ -12,14 +12,13 @@ libraryDependencies ++= {
   Seq(
     "com.typesafe.akka" %% "akka-http-core" % akkaV,
     "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaV,
-
     "de.heikoseeberger" %% "akka-http-circe" % "1.6.0",
 
     "com.typesafe.slick" %% "slick" % slickVersion,
     "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
     "org.flywaydb" % "flyway-core" % "3.2.1",
-    "com.h2database" % "h2" % "1.4.192",
-    "mysql" % "mysql-connector-java" % "5.1.39",
+//    "com.h2database" % "h2" % "1.4.192",
+//    "mysql" % "mysql-connector-java" % "5.1.39",
 
     "com.zaxxer" % "HikariCP" % "2.4.5",
     "org.slf4j" % "slf4j-nop" % "1.6.4",
@@ -35,6 +34,7 @@ libraryDependencies ++= {
 
     "org.scalatest" %% "scalatest" % scalaTestV % "test",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaV % "test",
+    "ru.yandex.qatools.embed" % "postgresql-embedded" % "1.13" % "test",
 
     "org.sangria-graphql" %% "sangria" % "0.7.0",
     "org.sangria-graphql" %% "sangria-spray-json" % "0.3.1",

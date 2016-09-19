@@ -1,6 +1,5 @@
-CREATE TABLE users (
-  id       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
-  username  VARCHAR(100) NOT NULL,
-  password VARCHAR(100) NOT NULL,
-  PRIMARY KEY (id)
+CREATE TABLE "users" (
+  "id"       BIGSERIAL PRIMARY KEY,
+  "username" VARCHAR NOT NULL,
+  "password" VARCHAR NOT NULL
 );

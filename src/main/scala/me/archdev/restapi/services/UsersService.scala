@@ -17,19 +17,7 @@ class UsersService(val databaseService: DatabaseService)(implicit executionConte
 
   def getUserByLogin(login: String): Future[Option[UserEntity]] = db.run(users.filter(_.username === login).result.headOption)
 
-//  def createUser(user: UserEntity): Future[UserEntity] = {
-//    db.run(users returning users += user)
-//  }
-
-  def createUser(user: UserEntity): Future[UserEntity] = {
-    db.run((users returning users.map(_.id) into ((user, newId) => user.copy(id = newId))) += user)
-  }
-
-//  def save(log: GCMLog): Try[GCMLog] = Try {
-//    (Log returning Log.map(_.id))
-//    into ((log, newId) => log.copy(id = newId))
-//    ) += log
-//  }
+  def createUser(user: UserEntity): Future[UserEntity] = db.run(users returning users += user)
 
   def updateUser(id: Long, userUpdate: UserEntityUpdate): Future[Option[UserEntity]] = getUserById(id).flatMap {
     case Some(user) =>
