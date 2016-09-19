@@ -1,11 +1,71 @@
 package me.archdev.graphQL
 
-import me.archdev.utils.ElasticTest
+import com.sksamuel.elastic4s.ElasticDsl.{index, _}
+import me.archdev.BaseServiceTest
 import org.scalatest.{Matchers, WordSpec}
 import sangria.macros._
 import spray.json._
 
-class EventsTest extends WordSpec with Matchers with ElasticTest {
+class EventsTest extends WordSpec with Matchers with BaseServiceTest {
+
+  client.execute {
+    bulk(
+      index into indexType fields {
+        Seq(
+          "title" -> Seq("title: event1"),
+          "url" -> Seq("http://www.fillyourday.com/event1"),
+          "image" -> Seq("http://www.fillyourday.com/event1/image1"),
+          "description" -> Seq("line1: event1", "line2: event1", "line3: event1"),
+          "category" -> Seq("family"),
+          "from" -> Seq("2016-01-06T11:00:00"),
+          "to" -> Seq("2016-01-06T13:00:00"),
+          "telephone" -> Seq("Tel: 01223 791501"),
+          "venue" -> Seq("Venue: event1")
+        )
+      } id 1,
+      index into indexType fields {
+        Seq(
+          "title" -> Seq("title: event2"),
+          "url" -> Seq("http://www.fillyourday.com/event2"),
+          "image" -> Seq("http://www.fillyourday.com/event2/image1"),
+          "description" -> Seq("line1: event2", "line2: event2", "line3: event2"),
+          "category" -> Seq("music"),
+          "from" -> Seq("2016-01-07T11:00:00"),
+          "to" -> Seq("2016-01-07T13:00:00"),
+          "telephone" -> Seq("Tel: 01223 791502"),
+          "venue" -> Seq("Venue: event2")
+        )
+      } id 2,
+      index into indexType fields {
+        Seq(
+          "title" -> Seq("title: event3"),
+          "url" -> Seq("http://www.fillyourday.com/event3"),
+          "image" -> Seq("http://www.fillyourday.com/event3/image1"),
+          "description" -> Seq("line1: event3", "line2: event3", "line3: event3"),
+          "category" -> Seq("family"),
+          "from" -> Seq("2016-01-08T11:00:00"),
+          "to" -> Seq("2016-01-08T13:00:00"),
+          "telephone" -> Seq("Tel: 01223 791503"),
+          "venue" -> Seq("Venue: event3")
+        )
+      } id 3,
+      index into indexType fields {
+        Seq(
+          "title" -> Seq("title: event4"),
+          "url" -> Seq("http://www.fillyourday.com/event4"),
+          "image" -> Seq("http://www.fillyourday.com/event4/image1"),
+          "description" -> Seq("line1: event4", "line2: event4", "line3: event4"),
+          "category" -> Seq("sport"),
+          "from" -> Seq("2016-01-09T11:00:00"),
+          "to" -> Seq("2016-01-09T13:00:00"),
+          "telephone" -> Seq("Tel: 01223 791504"),
+          "venue" -> Seq("Venue: event4")
+        )
+      } id 4
+    )
+  }.await
+
+  blockUntilCount(4, indexName)
 
   "GraphQL: events" when {
 

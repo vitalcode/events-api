@@ -2,6 +2,7 @@ package me.archdev.restapi.http.routes
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
@@ -51,9 +52,9 @@ case class Droid(
 
 case class Event(
                   id: String,
-                  category: Seq[Category],
-                  description: Seq[String],
-                  from: Seq[LocalDateTime]
+                  category: Option[Seq[Category]],
+                  description: Option[Seq[String]],
+                  from: Option[Seq[LocalDateTime]]
                 )
 
 case class Page[T](
@@ -89,11 +90,19 @@ class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
     override def as(hit: RichSearchHit): Event = {
       Event(
         id = hit.id,
-        category = hit.sourceAsMap("category").asInstanceOf[java.util.ArrayList[String]].map(c => Category.withName(c.toUpperCase)), // TODO Use upper case category in ES
-        description = hit.sourceAsMap("description").asInstanceOf[java.util.ArrayList[String]].toSeq,
-        from = hit.sourceAsMap("from").asInstanceOf[java.util.ArrayList[String]].map(d => LocalDateTime.parse(d, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+        category = mapElasticFieldValue(hit, "category", v => Category.withName(v.toUpperCase)), // TODO Use upper case category in ES
+        description = mapElasticFieldValue(hit, "description", v => v),
+        from = mapElasticFieldValue(hit, "from", v => LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
       )
     }
+  }
+
+  private def mapElasticFieldValue[T](hit: RichSearchHit, field: String, mapper: String => T): Option[Seq[T]] = {
+    val sourceMap = hit.sourceAsMap
+    if (sourceMap.isDefinedAt(field)) {
+      Some(sourceMap(field).asInstanceOf[java.util.ArrayList[String]].map(mapper))
+    }
+    else None
   }
 
   def getHero(episode: Option[Episode.Value]) =
