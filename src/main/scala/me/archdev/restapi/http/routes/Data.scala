@@ -2,17 +2,10 @@ package me.archdev.restapi.http.routes
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util
+import java.util.UUID
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
-import org.elasticsearch.action.get.GetResponse
-import org.elasticsearch.action.search.SearchResponse
-import org.elasticsearch.index.get.GetField
-import org.elasticsearch.index.query
-import org.elasticsearch.index.query.MatchQueryBuilder
-import org.elasticsearch.index.query.MatchQueryBuilder.Operator
-import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type
 import org.elasticsearch.search.sort.SortOrder
 import sangria.schema.{Deferred, DeferredResolver}
 import uk.vitalcode.events.model.Category
@@ -21,6 +14,42 @@ import uk.vitalcode.events.model.Category.Category
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.util.Try
+
+case class User(userName: String, permissions: List[String])
+
+class UserRepo {
+  var tokens = Map.empty[String, User]
+
+  tokens = tokens + ("123456" -> User("Vit", List.empty[String]))
+
+  /** Gives back a token or sessionId or anything else that identifies the user session  */
+  def authenticate(userName: String, password: String): Option[String] =
+    if (userName == "admin" && password == "secret") {
+      val token = UUID.randomUUID().toString
+      tokens = tokens + (token → User("admin", "VIEW_PERMISSIONS" :: "EDIT_COLORS" :: "VIEW_COLORS" :: Nil))
+      Some(token)
+    } else if (userName == "john" && password == "apples") {
+      val token = UUID.randomUUID().toString
+      tokens = tokens + (token → User("john", "VIEW_COLORS" :: Nil))
+      Some(token)
+    } else None
+
+  /** Gives `User` object with his/her permissions */
+  def authorise(token: String): Option[User] = {
+    tokens.get(token)
+  }
+}
+
+case class AuthenticationException(message: String) extends Exception(message)
+
+case class AuthorisationException(message: String) extends Exception(message)
+
+class ColorRepo {
+  var colors = List("red", "green", "blue")
+
+  def addColor(color: String) =
+    colors = colors :+ color
+}
 
 object Episode extends Enumeration {
   val NEWHOPE, EMPIRE, JEDI = Value
@@ -58,9 +87,9 @@ case class Event(
                 )
 
 case class Page[T](
-                  total: Int,
-                  items: Seq[T]
-               )
+                    total: Int,
+                    items: Seq[T]
+                  )
 
 /**
   * Instructs sangria to postpone the expansion of the friends list to the last responsible moment and then batch
@@ -81,10 +110,13 @@ class FriendsResolver extends DeferredResolver[Any] {
   }
 }
 
-
-class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
+class EventRepo(userRepo: UserRepo, colorRepo: ColorRepo)(implicit client: ElasticClient, indexType: IndexType) {
 
   import EventRepo._
+
+  var token: Option[String] = None
+
+  def setToken(t: Option[String]) = this.token = t
 
   implicit object CharacterHitAs extends HitAs[Event] {
     override def as(hit: RichSearchHit): Event = {
@@ -152,6 +184,24 @@ class EventRepo(implicit client: ElasticClient, indexType: IndexType) {
     if (!response.isEmpty) Some(Page(response.totalHits.toInt, response.as[Event]))
     else None
   }
+
+
+  def login(userName: String, password: String) = userRepo.authenticate(userName, password) getOrElse (
+    throw new AuthenticationException("UserName or password is incorrect"))
+
+  def authorised[T](permissions: String*)(fn: User ⇒ T) =
+    token.flatMap(userRepo.authorise).fold(throw AuthorisationException("Invalid token (authorised)")) { user ⇒
+      if (permissions.forall(user.permissions.contains)) fn(user)
+      else throw AuthorisationException("You do not have permission to do this operation")
+    }
+
+  def ensurePermissions(permissions: List[String]): Unit =
+    token.flatMap(userRepo.authorise).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) { user ⇒
+      if (!permissions.forall(user.permissions.contains))
+        throw AuthorisationException("You do not have permission to do this operation")
+    }
+
+  def user = token.flatMap(userRepo.authorise).fold(throw AuthorisationException("Invalid token (user)"))(identity)
 }
 
 object EventRepo {

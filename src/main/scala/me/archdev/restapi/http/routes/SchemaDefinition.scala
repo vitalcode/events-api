@@ -3,15 +3,43 @@ package me.archdev.restapi.http.routes
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+import akka.http.scaladsl.model.Uri.Authority
 import sangria.marshalling.DateSupport
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 import sangria.ast
+import sangria.execution.{FieldTag, Middleware, MiddlewareBeforeField, MiddlewareQueryContext}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
+
+
+case object Authorised extends FieldTag
+case class Permission(name: String) extends FieldTag
+
+object SecurityEnforcer extends Middleware[EventRepo] with MiddlewareBeforeField[EventRepo] {
+  type QueryVal = Unit
+  type FieldVal = Unit
+
+  def beforeQuery(context: MiddlewareQueryContext[EventRepo, _, _]) = ()
+  def afterQuery(queryVal: QueryVal, context: MiddlewareQueryContext[EventRepo, _, _]) = ()
+
+  def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[EventRepo, _, _], ctx: Context[EventRepo, _]) = {
+    val permissions = ctx.field.tags.collect {case Permission(p) ⇒ p}
+    val requireAuth = ctx.field.tags contains Authorised
+    val securityCtx = ctx.ctx
+
+    if (requireAuth)
+      securityCtx.user
+
+    if (permissions.nonEmpty)
+      securityCtx.ensurePermissions(permissions)
+
+    continue
+  }
+}
 
 /**
   * Defines a GraphQL schema for the current project
@@ -184,6 +212,7 @@ object SchemaDefinition {
         resolve = Projector((ctx, f) => ctx.ctx.getDroid(ctx arg ID).get)),
       Field("event", Event,
         arguments = ID :: Nil,
+        tags = Authorised :: Nil,
         resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
       Field("events", Page,
         arguments = Date :: Clue :: CategoryArg :: Start :: Limit :: Nil,

@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.testkit.ElasticSugar
 import de.heikoseeberger.akkahttpcirce.CirceSupport
 import me.archdev.restapi.Main.{dbPassword => _, dbUser => _, jdbcUrl => _}
 import me.archdev.restapi.http.HttpService
-import me.archdev.restapi.http.routes.{EventRepo, SchemaDefinition}
+import me.archdev.restapi.http.routes.{ColorRepo, EventRepo, SchemaDefinition, UserRepo}
 import me.archdev.restapi.models.UserEntity
 import me.archdev.restapi.services.{AuthService, UsersService}
 import me.archdev.restapi.utils.DatabaseService
@@ -33,7 +33,7 @@ trait BaseServiceTest extends WordSpec with Matchers with ScalatestRouteTest wit
   implicit val indexType: IndexType = indexName / elasticType
   implicit val elasticClient = client
 
-  val eventRepo = new EventRepo()
+  val eventRepo = new EventRepo(new UserRepo(), new ColorRepo())
   val usersService = new UsersService(databaseService)
   val authService = new AuthService(databaseService)(usersService)
   val httpService = new HttpService(usersService, authService, eventRepo)
@@ -56,7 +56,7 @@ trait BaseServiceTest extends WordSpec with Matchers with ScalatestRouteTest wit
       schema = SchemaDefinition.EventSchema,
       queryAst = query,
       variables = vars,
-      userContext = new EventRepo
+      userContext = new EventRepo(new UserRepo(), new ColorRepo())
     ).await
   }
 }

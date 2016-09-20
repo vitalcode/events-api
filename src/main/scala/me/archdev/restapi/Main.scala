@@ -7,7 +7,7 @@ import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri, IndexType}
 import me.archdev.restapi.http.HttpService
-import me.archdev.restapi.http.routes.EventRepo
+import me.archdev.restapi.http.routes.{ColorRepo, EventRepo, UserRepo}
 import me.archdev.restapi.services.{AuthService, UsersService}
 import me.archdev.restapi.utils.{Config, DatabaseService, FlywayService}
 import org.elasticsearch.common.settings.ImmutableSettings
@@ -31,7 +31,7 @@ object Main extends App with Config {
   val databaseService = new DatabaseService(jdbcUrl, dbUser, dbPassword)
   val usersService = new UsersService(databaseService)
   val authService = new AuthService(databaseService)(usersService)
-  val eventRepo = new EventRepo()
+  val eventRepo = new EventRepo(new UserRepo(), new ColorRepo())
 
   val httpService = new HttpService(usersService, authService, eventRepo)
 

@@ -7,7 +7,8 @@ import akka.http.scaladsl.server._
 import me.archdev.restapi.http.SecurityDirectives
 import me.archdev.restapi.services.AuthService
 import me.archdev.restapi.utils.Config
-import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
+import sangria.execution._
+import sangria.marshalling.ResultMarshaller
 import sangria.marshalling.sprayJson._
 import sangria.parser.QueryParser
 import spray.json.{JsObject, JsString, JsValue, _}
@@ -19,45 +20,57 @@ class GrahpQL(val authService: AuthService,
               eventRepo: EventRepo
              )(implicit executionContext: ExecutionContext) extends SecurityDirectives with Config {
 
+  val errorHandler: PartialFunction[(ResultMarshaller, Throwable), HandledException] = {
+    case (m, AuthenticationException(message)) ⇒ HandledException(message)
+    case (m, AuthorisationException(message)) ⇒ HandledException(message)
+  }
+
   val route: Route =
     (post & path("graphql")) {
-      entity(as[JsValue]) { requestJson ⇒
-        val JsObject(fields) = requestJson
+      optionalHeaderValueByName("SecurityToken") { token ⇒
+        entity(as[JsValue]) { requestJson ⇒
+          val JsObject(fields) = requestJson
 
-        val JsString(query) = fields("query")
+          val JsString(query) = fields("query")
 
-        val operation = fields.get("operationName") collect {
-          case JsString(op) ⇒ op
-        }
+          val operation = fields.get("operationName") collect {
+            case JsString(op) ⇒ op
+          }
 
-        val vars = fields.get("variables") match {
-          case Some(obj: JsObject) ⇒ obj
-          case Some(JsString(s)) if s.trim.nonEmpty ⇒ s.parseJson
-          case _ ⇒ JsObject.empty
-        }
+          val vars = fields.get("variables") match {
+            case Some(obj: JsObject) ⇒ obj
+            case Some(JsString(s)) if s.trim.nonEmpty ⇒ s.parseJson
+            case _ ⇒ JsObject.empty
+          }
 
-        QueryParser.parse(query) match {
+          eventRepo.setToken(token)
 
-          // query parsed successfully, time to execute it!
-          case Success(queryAst) ⇒
-            complete(Executor.execute(SchemaDefinition.EventSchema, queryAst, eventRepo,
-              operationName = operation,
-              variables = vars,
-              deferredResolver = new FriendsResolver)
-              .map(OK → _)
-              .recover {
-                case error: QueryAnalysisError ⇒ BadRequest → error.resolveError
-                case error: ErrorWithResolver ⇒ InternalServerError → error.resolveError
-              })
+          QueryParser.parse(query) match {
 
-          // can't parse GraphQL query, return error
-          case Failure(error) ⇒
-            complete(BadRequest, JsObject("error" -> JsString(error.getMessage)))
+            // query parsed successfully, time to execute it!
+            case Success(queryAst) ⇒
+              complete(Executor.execute(SchemaDefinition.EventSchema, queryAst,
+                userContext = eventRepo,
+                operationName = operation,
+                variables = vars,
+                exceptionHandler = errorHandler,
+                middleware = SecurityEnforcer :: Nil,
+                deferredResolver = new FriendsResolver)
+                .map(OK → _)
+                .recover {
+                  case error: QueryAnalysisError ⇒ BadRequest → error.resolveError
+                  case error: ErrorWithResolver ⇒ InternalServerError → error.resolveError
+                })
+
+            // can't parse GraphQL query, return error
+            case Failure(error) ⇒
+              complete(BadRequest, JsObject("error" -> JsString(error.getMessage)))
+          }
         }
       }
     } ~
       akka.http.scaladsl.server.Directives.get {
         getFromResource("graphiql.html")
       }
-
 }
+
