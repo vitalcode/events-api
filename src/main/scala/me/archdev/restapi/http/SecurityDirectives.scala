@@ -14,7 +14,7 @@ trait SecurityDirectives {
 
   def authenticate: Directive1[UserEntity] = {
     headerValueByName("Token").flatMap { token =>
-      onSuccess(authService.authenticate(token)).flatMap {
+      onSuccess(authService.authorise(token)).flatMap {
         case Some(user) => provide(user)
         case None       => reject
       }

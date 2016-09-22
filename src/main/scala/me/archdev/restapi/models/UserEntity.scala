@@ -1,12 +1,12 @@
 package me.archdev.restapi.models
 
-case class UserEntity(id: Option[Long] = None, username: String, password: String) {
+case class UserEntity(id: Option[Long] = None, username: String, password: String, permissions: Option[String]) {
   require(!username.isEmpty, "username.empty")
   require(!password.isEmpty, "password.empty")
 }
 
-case class UserEntityUpdate(username: Option[String] = None, password: Option[String] = None) {
+case class UserEntityUpdate(userName: Option[String] = None, password: Option[String] = None, permissions: Option[String]) {
   def merge(user: UserEntity): UserEntity = {
-    UserEntity(user.id, username.getOrElse(user.username), password.getOrElse(user.password))
+    UserEntity(user.id, userName.getOrElse(user.username), password.getOrElse(user.password), user.permissions)
   }
 }

@@ -4,8 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import me.archdev.restapi.http.SecurityDirectives
-import me.archdev.restapi.services.AuthService
+import me.archdev.restapi.http._
 import me.archdev.restapi.utils.Config
 import sangria.execution._
 import sangria.marshalling.ResultMarshaller
@@ -16,9 +15,7 @@ import spray.json.{JsObject, JsString, JsValue, _}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class GrahpQL(val authService: AuthService,
-              eventRepo: EventRepo
-             )(implicit executionContext: ExecutionContext) extends SecurityDirectives with Config {
+class EventsServiceRoute(val eventContext: EventContext)(implicit executionContext: ExecutionContext) extends Config {
 
   val errorHandler: PartialFunction[(ResultMarshaller, Throwable), HandledException] = {
     case (m, AuthenticationException(message)) ⇒ HandledException(message)
@@ -43,19 +40,18 @@ class GrahpQL(val authService: AuthService,
             case _ ⇒ JsObject.empty
           }
 
-          eventRepo.setToken(token)
+          eventContext.setToken(token)
 
           QueryParser.parse(query) match {
 
             // query parsed successfully, time to execute it!
             case Success(queryAst) ⇒
               complete(Executor.execute(SchemaDefinition.EventSchema, queryAst,
-                userContext = eventRepo,
+                userContext = eventContext,
                 operationName = operation,
                 variables = vars,
                 exceptionHandler = errorHandler,
-                middleware = SecurityEnforcer :: Nil,
-                deferredResolver = new FriendsResolver)
+                middleware = SecurityMiddleware :: Nil)
                 .map(OK → _)
                 .recover {
                   case error: QueryAnalysisError ⇒ BadRequest → error.resolveError

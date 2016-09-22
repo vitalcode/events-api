@@ -22,7 +22,7 @@ class UsersServiceRoute(val authService: AuthService,
   val route = pathPrefix("users") {
     pathEndOrSingleSlash {
       get {
-        complete(getUsers().map(_.asJson))
+        complete(getUsers.map(_.asJson))
       }
     } ~
       pathPrefix("me") {

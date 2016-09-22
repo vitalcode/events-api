@@ -6,12 +6,15 @@ import me.archdev.restapi.utils.DatabaseService
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UsersService(val databaseService: DatabaseService)(implicit executionContext: ExecutionContext) extends UserEntityTable {
+trait UsersService extends UserEntityTable {
+
+  implicit val databaseService: DatabaseService
+  implicit val executionContext: ExecutionContext
 
   import databaseService._
   import databaseService.driver.api._
 
-  def getUsers(): Future[Seq[UserEntity]] = db.run(users.result)
+  def getUsers: Future[Seq[UserEntity]] = db.run(users.result)
 
   def getUserById(id: Long): Future[Option[UserEntity]] = db.run(users.filter(_.id === id).result.headOption)
 
@@ -27,5 +30,4 @@ class UsersService(val databaseService: DatabaseService)(implicit executionConte
   }
 
   def deleteUser(id: Long): Future[Int] = db.run(users.filter(_.id === id).delete)
-
 }
