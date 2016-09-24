@@ -1,7 +1,11 @@
 package me.archdev.restapi.http
 
+import me.archdev.restapi.services.AuthService
 import sangria.execution.{FieldTag, Middleware, MiddlewareBeforeField, MiddlewareQueryContext}
 import sangria.schema.Context
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 case object Authorised extends FieldTag
 
@@ -18,14 +22,26 @@ object SecurityMiddleware extends Middleware[EventContext] with MiddlewareBefore
   def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[EventContext, _, _], ctx: Context[EventContext, _]) = {
     val permissions = ctx.field.tags.collect { case Permission(p) ⇒ p }
     val requireAuth = ctx.field.tags.contains(Authorised)
+    val token = ctx.ctx.token
     val securityCtx = ctx.ctx
 
     if (requireAuth)
-      securityCtx.user
+      authenticateUser(securityCtx)
 
     if (permissions.nonEmpty)
-      securityCtx.ensurePermissions(permissions)
+      ensurePermissions(permissions, securityCtx)
 
     continue
   }
+
+  private def authenticateUser(ctx: EventContext) = {
+    ctx.token.flatMap(t => Await.result(ctx.authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (SecurityMiddleware)"))(identity)
+  }
+
+  def ensurePermissions(permissions: List[String], ctx: EventContext): Unit =
+    ctx.token.flatMap(t => Await.result(ctx.authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) {
+      user ⇒
+        if (!permissions.forall(user.permissions.contains))
+          throw AuthorisationException("You do not have permission to do this operation")
+    }
 }

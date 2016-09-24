@@ -6,27 +6,14 @@ import java.time.format.DateTimeFormatter
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import me.archdev.restapi.models.{Event, Page}
+import me.archdev.restapi.utils.ElasticServiceSugar
 import org.elasticsearch.search.sort.SortOrder
-import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category._
 
-import scala.collection.JavaConversions._
+trait EventService extends ElasticServiceSugar {
 
-
-trait EventService {
   val client: ElasticClient
   val indexType: IndexType
-
-  implicit object CharacterHitAs extends HitAs[Event] {
-    override def as(hit: RichSearchHit): Event = {
-      Event(
-        id = hit.id,
-        category = mapElasticFieldValue(hit, "category", v => Category.withName(v.toUpperCase)), // TODO Use upper case category in ES
-        description = mapElasticFieldValue(hit, "description", v => v),
-        from = mapElasticFieldValue(hit, "from", v => LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-      )
-    }
-  }
 
   def getEvent(eventId: String, fieldSet: String*): Option[Event] = {
 
@@ -62,17 +49,5 @@ trait EventService {
 
     if (!response.isEmpty) Some(Page(response.totalHits.toInt, response.as[Event]))
     else None
-  }
-
-  private def mapElasticFieldValue[T](hit: RichSearchHit, field: String, mapper: String => T): Option[Seq[T]] = {
-    val sourceMap = hit.sourceAsMap
-    if (sourceMap.isDefinedAt(field)) {
-      Some(sourceMap(field).asInstanceOf[java.util.ArrayList[String]].map(mapper))
-    }
-    else None
-  }
-
-  private def appendQuery[T](date: Option[T], must: Seq[QueryDefinition], fn: T => QueryDefinition): Seq[QueryDefinition] = {
-    date.map(e => must :+ fn(e)) getOrElse must
   }
 }

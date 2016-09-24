@@ -8,8 +8,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait UsersService extends UserEntityTable {
 
-  implicit val databaseService: DatabaseService
   implicit val executionContext: ExecutionContext
+  val databaseService: DatabaseService
 
   import databaseService._
   import databaseService.driver.api._
