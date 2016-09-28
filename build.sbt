@@ -26,6 +26,7 @@ libraryDependencies ++= {
     "io.circe" %% "circe-core" % circeV,
     "io.circe" %% "circe-generic" % circeV,
     "io.circe" %% "circe-parser" % circeV,
+    "io.spray" %%  "spray-json" % "1.3.2",
 
     "org.sangria-graphql" %% "sangria" % "0.7.3",
     "com.sksamuel.elastic4s" %% "elastic4s-core" % "1.7.5",

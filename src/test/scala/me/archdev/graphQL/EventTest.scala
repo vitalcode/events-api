@@ -1,12 +1,12 @@
 package me.archdev.graphQL
 
 import com.sksamuel.elastic4s.ElasticDsl.{index, _}
-import me.archdev.BaseServiceTest
+import me.archdev.utils.BaseTest
 import org.scalatest.{Matchers, WordSpec}
 import sangria.macros._
 import spray.json._
 
-class EventTest extends WordSpec with Matchers with BaseServiceTest {
+class EventTest extends WordSpec with Matchers with BaseTest {
 
   client.execute {
     bulk(
