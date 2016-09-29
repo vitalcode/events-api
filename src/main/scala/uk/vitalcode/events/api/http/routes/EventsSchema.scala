@@ -3,11 +3,11 @@ package uk.vitalcode.events.api.http.routes
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import uk.vitalcode.events.api.models.{Event, Page}
 import sangria.ast
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 import uk.vitalcode.events.api.http.{Authorised, EventContext}
+import uk.vitalcode.events.api.models.{Event, Page}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
 
@@ -114,7 +114,7 @@ object SchemaDefinition {
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).token) { token ⇒
         ctx.ctx.setToken(Some(token))
         ctx.ctx // todo copy no mutation
-//        ctx.ctx.copy(token = Some(token.token))
+        //        ctx.ctx.copy(token = Some(token.token))
       })
     //    Field("addColor", OptionType(ListType(StringType)),
     //      arguments = ColorArg :: Nil,

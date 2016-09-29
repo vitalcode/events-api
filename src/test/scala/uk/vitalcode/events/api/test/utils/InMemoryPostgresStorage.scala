@@ -1,11 +1,11 @@
 package uk.vitalcode.events.api.test.utils
 
 import de.flapdoodle.embed.process.runtime.Network._
-import uk.vitalcode.events.api.utils.FlywayService
 import ru.yandex.qatools.embed.postgresql.PostgresStarter
 import ru.yandex.qatools.embed.postgresql.config.AbstractPostgresConfig.{Credentials, Net, Storage, Timeout}
 import ru.yandex.qatools.embed.postgresql.config.PostgresConfig
 import ru.yandex.qatools.embed.postgresql.distribution.Version
+import uk.vitalcode.events.api.utils.FlywayService
 
 object InMemoryPostgresStorage {
   val dbHost = getLocalHost.getHostAddress

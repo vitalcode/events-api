@@ -4,12 +4,12 @@ import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri, IndexType}
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri, IndexType}
 import org.elasticsearch.common.settings.ImmutableSettings
-import uk.vitalcode.events.api.utils.{Config, DatabaseService, FlywayService}
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
 import uk.vitalcode.events.api.services.{AuthService, UsersService}
+import uk.vitalcode.events.api.utils.{Config, DatabaseService, FlywayService}
 
 import scala.concurrent.ExecutionContext
 

@@ -14,9 +14,9 @@ case class AuthenticationException(message: String) extends Exception(message)
 case class AuthorisationException(message: String) extends Exception(message)
 
 case class EventContext(implicit val client: ElasticClient,
-                   implicit val indexType: IndexType,
-                   implicit val databaseService: DatabaseService,
-                   implicit val executionContext: ExecutionContext) extends EventService with UsersService with AuthService {
+                        implicit val indexType: IndexType,
+                        implicit val databaseService: DatabaseService,
+                        implicit val executionContext: ExecutionContext) extends EventService with UsersService with AuthService {
 
   var token: Option[String] = None
 
@@ -32,16 +32,16 @@ case class EventContext(implicit val client: ElasticClient,
         else throw AuthorisationException("You do not have permission to do this operation")
     }
 
-//  def ensurePermissions(permissions: List[String]): Unit =
-//    token.flatMap(t => Await.result(authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) {
-//      user ⇒
-//        if (!permissions.forall(user.permissions.contains))
-//          throw AuthorisationException("You do not have permission to do this operation")
-//    }
+  //  def ensurePermissions(permissions: List[String]): Unit =
+  //    token.flatMap(t => Await.result(authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) {
+  //      user ⇒
+  //        if (!permissions.forall(user.permissions.contains))
+  //          throw AuthorisationException("You do not have permission to do this operation")
+  //    }
 
-//  def user = {
-//    token.flatMap(t => Await.result(authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (user)"))(identity)
-//  }
+  //  def user = {
+  //    token.flatMap(t => Await.result(authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (user)"))(identity)
+  //  }
 }
 
 // TODO Duration fix

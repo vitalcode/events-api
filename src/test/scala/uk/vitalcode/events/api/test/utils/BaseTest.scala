@@ -5,18 +5,17 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.IndexType
 import com.sksamuel.elastic4s.testkit.ElasticSugar
 import de.heikoseeberger.akkahttpcirce.CirceSupport
-import uk.vitalcode.events.api.models.UserEntity
-import uk.vitalcode.events.api.services.{AuthService, UsersService}
-import uk.vitalcode.events.api.utils.DatabaseService
-import InMemoryPostgresStorage._
 import org.scalatest._
 import sangria.ast.Document
 import sangria.execution.Executor
 import sangria.marshalling.sprayJson._
 import spray.json.JsObject
-import uk.vitalcode.events.api.Main
-import uk.vitalcode.events.api.http.{EventContext, HttpService}
 import uk.vitalcode.events.api.http.routes.SchemaDefinition
+import uk.vitalcode.events.api.http.{EventContext, HttpService}
+import uk.vitalcode.events.api.models.UserEntity
+import uk.vitalcode.events.api.services.{AuthService, UsersService}
+import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
+import uk.vitalcode.events.api.utils.DatabaseService
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

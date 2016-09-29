@@ -5,8 +5,8 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import io.circe.generic.auto._
 import io.circe.syntax._
-import uk.vitalcode.events.api.models.UserEntity
 import spray.json._
+import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
 
 class AuthTest extends BaseTest {
