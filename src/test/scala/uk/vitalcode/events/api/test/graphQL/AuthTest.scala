@@ -5,22 +5,11 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import io.circe.generic.auto._
 import io.circe.syntax._
-import sangria.ast.{AstNode, Document, Value}
 import sangria.macros._
 import sangria.renderer.QueryRenderer
 import spray.json._
 import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
-import sangria.marshalling.sprayJson._
-import sangria.marshalling.ResultMarshaller
-import sangria.marshalling.InputUnmarshaller
-import sangria.marshalling.sprayJson._
-import sangria.parser.QueryParser
-import sangria.marshalling.sprayJson._
-import sangria.marshalling.queryAst._
-import sangria.marshalling.queryAst._
-
-import scala.util.Success
 
 class AuthTest extends BaseTest {
 
@@ -41,7 +30,7 @@ class AuthTest extends BaseTest {
       val testUser = testUsers(1)
       signInUser(testUser, route) {
         responseAs[JsObject].getFields("data").head.asInstanceOf[JsObject]
-          .getFields("login8").isEmpty should be
+          .getFields("login").head.asInstanceOf[JsString].value.length shouldBe 32
       }
     }
 
@@ -62,36 +51,17 @@ class AuthTest extends BaseTest {
   private def signInUser(user: UserEntity, route: server.Route)(action: => Unit) = {
     val query2 =
       graphql"""
-        mutation login {
-          login (user: "vit" password: "kuz")
+        mutation login($$user: String! $$password: String!){
+          login (user: $$user password: $$password)
         }
         """
-
-//    val Success(query2) = QueryAstMarshallerForType.renderCompact(query2) . parse(query)
-//      """
-//        query FetchSomeIDQuery($someId: String!) {
-//          human(id: $someId) {
-//            name
-//            appearsIn
-//            friends {
-//              id
-//              name
-//            }
-//          }
-//        }
-//      """)
-//    //val q = d.asJson
-
-    //val rendered = queryAstInputUnmarshaller.render(query2.asInstanceOf[AstNode])
-
-    val s = QueryRenderer.render(query2, QueryRenderer.Compact).replaceAll("\"", "\\\\\"")
-
-    val query3 = s"""{"query": "$s"}"""
-
-    //val query4 = s"""{"query":"mutation login{login (user: \\"${user.username}\\" password: \\"${user.password}\\")}","variables":"","operationName":"login"}"""
+    val query = QueryRenderer.render(query2, QueryRenderer.Compact).replaceAll("\"", "\\\\\"")
     val requestEntity = HttpEntity(
       MediaTypes.`application/json`,
-      query3
+      s"""{
+        "query": "$query",
+        "variables": "{\\"user\\":\\"${user.username}\\",\\"password\\":\\"${user.password}\\"}"
+      }"""
     )
     Post("/graphql", requestEntity) ~> route ~> check(action)
   }
