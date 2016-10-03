@@ -5,9 +5,22 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import io.circe.generic.auto._
 import io.circe.syntax._
+import sangria.ast.{AstNode, Document, Value}
+import sangria.macros._
+import sangria.renderer.QueryRenderer
 import spray.json._
 import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
+import sangria.marshalling.sprayJson._
+import sangria.marshalling.ResultMarshaller
+import sangria.marshalling.InputUnmarshaller
+import sangria.marshalling.sprayJson._
+import sangria.parser.QueryParser
+import sangria.marshalling.sprayJson._
+import sangria.marshalling.queryAst._
+import sangria.marshalling.queryAst._
+
+import scala.util.Success
 
 class AuthTest extends BaseTest {
 
@@ -47,10 +60,38 @@ class AuthTest extends BaseTest {
   }
 
   private def signInUser(user: UserEntity, route: server.Route)(action: => Unit) = {
-    val query = s"""{"query":"mutation login{login (user: \\"${user.username}\\" password: \\"${user.password}\\")}","variables":"","operationName":"login"}"""
+    val query2 =
+      graphql"""
+        mutation login {
+          login (user: "vit" password: "kuz")
+        }
+        """
+
+//    val Success(query2) = QueryAstMarshallerForType.renderCompact(query2) . parse(query)
+//      """
+//        query FetchSomeIDQuery($someId: String!) {
+//          human(id: $someId) {
+//            name
+//            appearsIn
+//            friends {
+//              id
+//              name
+//            }
+//          }
+//        }
+//      """)
+//    //val q = d.asJson
+
+    //val rendered = queryAstInputUnmarshaller.render(query2.asInstanceOf[AstNode])
+
+    val s = QueryRenderer.render(query2, QueryRenderer.Compact).replaceAll("\"", "\\\\\"")
+
+    val query3 = s"""{"query": "$s"}"""
+
+    //val query4 = s"""{"query":"mutation login{login (user: \\"${user.username}\\" password: \\"${user.password}\\")}","variables":"","operationName":"login"}"""
     val requestEntity = HttpEntity(
       MediaTypes.`application/json`,
-      query
+      query3
     )
     Post("/graphql", requestEntity) ~> route ~> check(action)
   }

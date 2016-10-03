@@ -10,7 +10,7 @@ import uk.vitalcode.events.api.utils.FlywayService
 object InMemoryPostgresStorage {
   val dbHost = getLocalHost.getHostAddress
   val dbPort = 25535
-  val dbName = "database-name"
+  val dbName = "event_test"
   val dbUser = "user"
   val dbPassword = "password"
   val jdbcUrl = s"jdbc:postgresql://$dbHost:$dbPort/$dbName"
