@@ -6,7 +6,6 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import io.circe.generic.auto._
 import io.circe.syntax._
 import sangria.macros._
-import sangria.renderer.QueryRenderer
 import spray.json._
 import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
@@ -25,7 +24,6 @@ class AuthTest extends BaseTest {
   }
 
   "Auth mutations" should {
-
     "authorize users by login and password and retrieve token" in new Context {
       val testUser = testUsers(1)
       signInUser(testUser, route) {
@@ -49,19 +47,15 @@ class AuthTest extends BaseTest {
   }
 
   private def signInUser(user: UserEntity, route: server.Route)(action: => Unit) = {
-    val query2 =
+    val query =
       graphql"""
         mutation login($$user: String! $$password: String!){
           login (user: $$user password: $$password)
         }
         """
-    val query = QueryRenderer.render(query2, QueryRenderer.Compact).replaceAll("\"", "\\\\\"")
     val requestEntity = HttpEntity(
       MediaTypes.`application/json`,
-      s"""{
-        "query": "$query",
-        "variables": "{\\"user\\":\\"${user.username}\\",\\"password\\":\\"${user.password}\\"}"
-      }"""
+      graphRequest(query, Map("user" -> user.username, "password" -> user.password))
     )
     Post("/graphql", requestEntity) ~> route ~> check(action)
   }

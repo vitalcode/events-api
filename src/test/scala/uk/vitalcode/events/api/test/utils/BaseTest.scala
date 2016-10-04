@@ -9,6 +9,7 @@ import org.scalatest._
 import sangria.ast.Document
 import sangria.execution.Executor
 import sangria.marshalling.sprayJson._
+import sangria.renderer.QueryRenderer
 import spray.json.JsObject
 import uk.vitalcode.events.api.http.routes.SchemaDefinition
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
@@ -58,7 +59,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     Await.result(Future.sequence(savedTokens), 10.seconds)
   }
 
-  def executeQuery(query: Document, vars: JsObject = JsObject.empty) = {
+  protected def executeQuery(query: Document, vars: JsObject = JsObject.empty) = {
     Executor.execute(
       schema = SchemaDefinition.EventSchema,
       queryAst = query,
@@ -66,4 +67,13 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
       userContext = new EventContext()
     ).await
   }
+
+  protected def graphRequest(document: Document, variables: Map[String, String]): String = {
+    val query = QueryRenderer.render(document, QueryRenderer.Compact)
+    val vars = variables.foldLeft("")((acc, v) => acc.concat(s""""${v._1}":"${v._2}",""")).replaceAll(",$", "")
+    val ff = s"""{"query": "${asJsonString(query)}", "variables": "{${asJsonString(vars)}}"}"""
+    ff
+  }
+
+  protected def asJsonString(str: String): String = str.replaceAll("\"", "\\\\\"")
 }
