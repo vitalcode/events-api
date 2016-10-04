@@ -7,8 +7,12 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import sangria.macros._
 import spray.json._
-import uk.vitalcode.events.api.models.UserEntity
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.test.utils.BaseTest
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.util.Random
 
 class AuthTest extends BaseTest {
 
@@ -27,8 +31,9 @@ class AuthTest extends BaseTest {
     "authorize users by login and password and retrieve token" in new Context {
       val testUser = testUsers(1)
       signInUser(testUser, route) {
-        responseAs[JsObject].getFields("data").head.asInstanceOf[JsObject]
-          .getFields("login").head.asInstanceOf[JsString].value.length shouldBe 32
+        val token = Await.result(authService.signIn(testUser.username, testUser.password), Duration.Inf)
+        token.isDefined shouldBe true
+        responseAs[JsObject] shouldBe JsObject("data" -> JsObject("login" -> JsString(token.get.token)))
       }
     }
 
