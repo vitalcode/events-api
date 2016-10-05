@@ -46,13 +46,11 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
 
   def provisionUsersList(size: Int): Seq[UserEntity] = {
-    val savedUsers = (1 to size).map { _ =>
-      val f = UserEntity(Some(Random.nextLong()), Random.nextString(10), Random.nextString(10), None) // TODO Permission test data
-      f
-    }.map(usersService.createUser)
-
+    val savedUsers = (1 to size).map(_ => provisionUser).map(usersService.createUser)
     Await.result(Future.sequence(savedUsers), 10.seconds)
   }
+
+  def provisionUser: UserEntity = UserEntity(Some(Random.nextLong()), Random.nextString(10), Random.nextString(10), None)
 
   def provisionTokensForUsers(usersList: Seq[UserEntity]) = {
     val savedTokens = usersList.map(authService.createToken)

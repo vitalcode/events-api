@@ -11,6 +11,8 @@ import uk.vitalcode.events.api.models.{Event, Page}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
 
+import scala.concurrent.ExecutionContext
+import ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 
@@ -115,8 +117,14 @@ object SchemaDefinition {
         ctx.ctx.setToken(Some(token))
         ctx.ctx // todo copy no mutation
         //        ctx.ctx.copy(token = Some(token.token))
+      }),
+    Field("signUp", OptionType(StringType),
+      arguments = UserNameArg :: PasswordArg :: Nil,
+      resolve = ctx ⇒ UpdateCtx(ctx.ctx.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒
+        ctx.ctx.setToken(Some(token))
+        ctx.ctx
       })
-    //    Field("addColor", OptionType(ListType(StringType)),
+    //    Field("addPermition", OptionType(ListType(StringType)),
     //      arguments = ColorArg :: Nil,
     //      tags = Permission("EDIT_COLORS") :: Nil,
     //      resolve = ctx ⇒ {

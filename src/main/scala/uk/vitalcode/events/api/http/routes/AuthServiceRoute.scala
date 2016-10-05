@@ -30,7 +30,7 @@ class AuthServiceRoute(val authService: AuthService)(implicit executionContext: 
         pathEndOrSingleSlash {
           post {
             entity(as[UserEntity]) { userEntity =>
-              complete(Created -> signUp(userEntity).map(_.asJson))
+              complete(Created -> signup(userEntity).map(_.asJson))
             }
           }
         }

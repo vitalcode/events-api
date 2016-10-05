@@ -4,7 +4,8 @@ import uk.vitalcode.events.api.models.db.TokenEntityTable
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.utils.DatabaseService
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 trait AuthService extends TokenEntityTable {
   this: UsersService =>
@@ -28,8 +29,17 @@ trait AuthService extends TokenEntityTable {
       }
   }
 
-  def signUp(newUser: UserEntity): Future[TokenEntity] = {
+  def signup(newUser: UserEntity): Future[TokenEntity] = {
     createUser(newUser).flatMap(user => createToken(user))
+  }
+
+  def signup(login: String, pass: String): Future[TokenEntity] = {
+    val newUser = UserEntity(
+      username = login,
+      password = pass,
+      permissions = None
+    )
+    signup(newUser)
   }
 
   def authorise(token: String): Future[Option[UserEntity]] = db.run((for {
@@ -37,6 +47,14 @@ trait AuthService extends TokenEntityTable {
     user <- users.filter(_.id === token.userId)
   } yield user).result.headOption)
 
-  def createToken(user: UserEntity): Future[TokenEntity] = db.run(tokens returning tokens += TokenEntity(userId = user.id))
-}
+  def createToken(user: UserEntity): Future[TokenEntity] = {
+    val userTokenQuery = tokens.filter(_.userId === user.id)
 
+    val t: Seq[TokenEntity] = Await.result(db.run(userTokenQuery.result), Duration.Inf)
+
+    if (t.isEmpty) {
+      db.run(tokens returning tokens += TokenEntity(userId = user.id))
+    }
+    else Future(t.head)
+  }
+}
