@@ -44,7 +44,6 @@ class AuthTest extends BaseTest {
         responseAs[JsObject] shouldBe responseToken(token.get.token)
       }
     }
-
   }
 
   private def responseToken (token: String) = JsObject("data" -> JsObject("token" -> JsString(token)))
@@ -57,7 +56,7 @@ class AuthTest extends BaseTest {
         }
         """
     val requestEntity = HttpEntity(MediaTypes.`application/json`,
-      graphRequest(query, Map("user" -> user.username, "password" -> user.password))
+      graphRequest(query, vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password)))
     )
     Post("/graphql", requestEntity) ~> route ~> check(action)
   }
@@ -65,12 +64,12 @@ class AuthTest extends BaseTest {
   private def signInUser(user: UserEntity, route: server.Route)(action: => Unit) = {
     val query =
       graphql"""
-        mutation login($$user: String! $$password: String!){
-          token: login (user: $$user password: $$password)
+        mutation logIn($$user: String! $$password: String!){
+          token: logIn (user: $$user password: $$password)
         }
         """
     val requestEntity = HttpEntity(MediaTypes.`application/json`,
-      graphRequest(query, Map("user" -> user.username, "password" -> user.password))
+      graphRequest(query, vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password)))
     )
     Post("/graphql", requestEntity) ~> route ~> check(action)
   }

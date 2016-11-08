@@ -1,12 +1,34 @@
 package uk.vitalcode.events.api.test.graphQL
 
+import akka.http.javadsl.model.headers.HttpCredentials
+import akka.http.scaladsl.model.headers.{Authorization, RawHeader}
+import akka.http.scaladsl.model.{HttpEntity, HttpHeader, MediaTypes, StatusCodes}
+import akka.http.scaladsl.server
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.sksamuel.elastic4s.ElasticDsl.{index, _}
 import org.scalatest.{Matchers, WordSpec}
+import sangria.ast.Document
 import sangria.macros._
+import sangria.renderer.QueryRenderer
 import spray.json._
+import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 class EventsTest extends WordSpec with Matchers with BaseTest {
+
+  trait Context {
+    val testUsers = provisionUsersList(2)
+    val route = httpService.graphQLRoute.route
+  }
+
+  implicit val um: Unmarshaller[HttpEntity, JsObject] = {
+    Unmarshaller.byteStringUnmarshaller.mapWithCharset { (data, charset) =>
+      data.utf8String.parseJson.asJsObject
+    }
+  }
 
   client.execute {
     bulk(
@@ -66,6 +88,47 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
   }.await
 
   blockUntilCount(4, indexName)
+
+
+
+  "Auth events" should {
+    "access protected recourse" in new Context {
+      val testUser = testUsers(1)
+      getEvents(testUser, route) {
+        status shouldEqual StatusCodes.OK
+        responseAs[JsObject] shouldBe
+          """
+          {
+            "data": {
+              "events": {
+                "total": 4,
+                "items": [{"id": "1"}, {"id": "2"},{"id": "3"}, {"id": "4"}]
+              }
+            }
+          }""".parseJson
+      }
+    }
+  }
+
+  private def getEvents(user: UserEntity, route: server.Route)(action: => Unit) = {
+    val query =
+      graphql"""
+        query FetchEvents($$start: Int!, $$limit: Int!) {
+          events(start: $$start, limit: $$limit) {
+            total
+            items {
+              id
+            }
+          }
+        }
+        """
+    val token = Await.result(authService.signIn(user.username, user.password), Duration.Inf)
+    val requestEntity = HttpEntity(MediaTypes.`application/json`,
+      graphRequest(query, vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10)))
+    )
+    Post("/graphql", requestEntity).addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.get.token))) ~> route ~> check(action)
+  }
+
 
   "GraphQL: events" when {
 

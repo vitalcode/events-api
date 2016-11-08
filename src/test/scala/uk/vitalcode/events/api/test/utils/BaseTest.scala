@@ -66,10 +66,9 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     ).await
   }
 
-  protected def graphRequest(document: Document, variables: Map[String, String]): String = {
+  protected def graphRequest(document: Document, vars: JsObject = JsObject.empty): String = {
     val query = QueryRenderer.render(document, QueryRenderer.Compact)
-    val vars = variables.foldLeft("")((acc, v) => acc.concat(s""""${v._1}":"${v._2}",""")).replaceAll(",$", "")
-    val ff = s"""{"query": "${asJsonString(query)}", "variables": "{${asJsonString(vars)}}"}"""
+    val ff = s"""{"query": "${asJsonString(query)}", "variables": "${asJsonString(vars.toString)}"}"""
     ff
   }
 

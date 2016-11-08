@@ -99,6 +99,7 @@ object SchemaDefinition {
       resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
     Field("events", Page,
       arguments = Date :: Clue :: CategoryArg :: Start :: Limit :: Nil,
+      tags = Authorised :: Nil,
       resolve = ctx => ctx.ctx.getEvents(
         date = ctx.arg(Date),
         clue = ctx.arg(Clue),
@@ -109,9 +110,10 @@ object SchemaDefinition {
 
   val UserNameArg = Argument("user", StringType)
   val PasswordArg = Argument("password", StringType)
+  val RoleArg = Argument("role", StringType)
 
   val MutationType = ObjectType("Mutation", fields[EventContext, Unit](
-    Field("login", OptionType(StringType),
+    Field("logIn", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).token) { token ⇒
         ctx.ctx.setToken(Some(token))
@@ -123,13 +125,12 @@ object SchemaDefinition {
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒
         ctx.ctx.setToken(Some(token))
         ctx.ctx
-      })
-    //    Field("addPermition", OptionType(ListType(StringType)),
-    //      arguments = ColorArg :: Nil,
-    //      tags = Permission("EDIT_COLORS") :: Nil,
+      }) //,
+    //      Field("addRole", OptionType(ListType(StringType)),
+    //      arguments = RoleArg :: Nil,
+    //      tags = Permission("ADMIN") :: Nil,
     //      resolve = ctx ⇒ {
-    //        ctx.ctx.colorRepo.addColor(ctx.arg(ColorArg))
-    //        ctx.ctx.colorRepo.colors
+    //
     //      })
   ))
 

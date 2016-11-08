@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.directives.Credentials
 import sangria.execution._
 import sangria.marshalling.ResultMarshaller
 import sangria.marshalling.sprayJson._
@@ -17,6 +18,17 @@ import scala.util.{Failure, Success}
 
 class EventsServiceRoute(val eventContext: EventContext)(implicit executionContext: ExecutionContext) extends Config {
 
+
+  def authenticator(credentials: Credentials): Option[String] =
+    credentials match {
+      case p @ Credentials.Provided(id) => {
+        Some(id)
+      }
+//      case p @ Credentials.Provided(id) if p.verify("p4ssw0rd") => Some(id)
+      //case _ => None
+      case _ => Some("test_token")
+    }
+
   val errorHandler: PartialFunction[(ResultMarshaller, Throwable), HandledException] = {
     case (m, AuthenticationException(message)) ⇒ HandledException(message)
     case (m, AuthorisationException(message)) ⇒ HandledException(message)
@@ -24,7 +36,7 @@ class EventsServiceRoute(val eventContext: EventContext)(implicit executionConte
 
   val route: Route =
     (post & path("graphql")) {
-      optionalHeaderValueByName("SecurityToken") { token ⇒
+      authenticateOAuth2("Authorization", authenticator) { token ⇒
         entity(as[JsValue]) { requestJson ⇒
           val JsObject(fields) = requestJson
 
@@ -40,7 +52,8 @@ class EventsServiceRoute(val eventContext: EventContext)(implicit executionConte
             case _ ⇒ JsObject.empty
           }
 
-          eventContext.setToken(token)
+          //eventContext.setToken(token.replaceAll("""Bearer""", "").trim)
+          eventContext.setToken(Some(token))
 
           QueryParser.parse(query) match {
 
