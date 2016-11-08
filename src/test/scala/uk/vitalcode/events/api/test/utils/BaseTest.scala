@@ -10,7 +10,7 @@ import sangria.ast.Document
 import sangria.execution.Executor
 import sangria.marshalling.sprayJson._
 import sangria.renderer.QueryRenderer
-import spray.json.JsObject
+import spray.json.{JsObject, JsString}
 import uk.vitalcode.events.api.http.routes.SchemaDefinition
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
 import uk.vitalcode.events.api.models.UserEntity
@@ -68,9 +68,9 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
   protected def graphRequest(document: Document, vars: JsObject = JsObject.empty): String = {
     val query = QueryRenderer.render(document, QueryRenderer.Compact)
-    val ff = s"""{"query": "${asJsonString(query)}", "variables": "${asJsonString(vars.toString)}"}"""
-    ff
+    JsObject(
+      "query" -> JsString(query),
+      "variables" -> JsString(vars.toString)
+    ).compactPrint
   }
-
-  protected def asJsonString(str: String): String = str.replaceAll("\"", "\\\\\"")
 }

@@ -1,18 +1,15 @@
 package uk.vitalcode.events.api.test.graphQL
 
-import akka.http.scaladsl.model.{HttpEntity, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.{HttpEntity, MediaTypes}
 import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import io.circe.generic.auto._
-import io.circe.syntax._
 import sangria.macros._
 import spray.json.{JsString, _}
-import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
+import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
 
+import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scala.util.Random
 
 class AuthTest extends BaseTest {
 
@@ -46,7 +43,7 @@ class AuthTest extends BaseTest {
     }
   }
 
-  private def responseToken (token: String) = JsObject("data" -> JsObject("token" -> JsString(token)))
+  private def responseToken(token: String) = JsObject("data" -> JsObject("token" -> JsString(token)))
 
   private def signUpUser(user: UserEntity, route: server.Route)(action: => Unit) = {
     val query =

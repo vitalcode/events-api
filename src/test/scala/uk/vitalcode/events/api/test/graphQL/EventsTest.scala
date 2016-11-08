@@ -1,15 +1,13 @@
 package uk.vitalcode.events.api.test.graphQL
 
 import akka.http.javadsl.model.headers.HttpCredentials
-import akka.http.scaladsl.model.headers.{Authorization, RawHeader}
-import akka.http.scaladsl.model.{HttpEntity, HttpHeader, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.headers.Authorization
+import akka.http.scaladsl.model.{HttpEntity, MediaTypes, StatusCodes}
 import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.sksamuel.elastic4s.ElasticDsl.{index, _}
 import org.scalatest.{Matchers, WordSpec}
-import sangria.ast.Document
 import sangria.macros._
-import sangria.renderer.QueryRenderer
 import spray.json._
 import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
