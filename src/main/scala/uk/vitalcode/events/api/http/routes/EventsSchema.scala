@@ -7,12 +7,13 @@ import sangria.ast
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 import uk.vitalcode.events.api.http.{Authorised, EventContext}
-import uk.vitalcode.events.api.models.{Event, Page}
+import uk.vitalcode.events.api.models.{Event, Page, UserEntity}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
 import ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
 
@@ -49,6 +50,20 @@ object SchemaDefinition {
       case ast.StringValue(s, _, _) ⇒ parseDate(s)
       case _ ⇒ Left(DateCoercionViolation)
     })
+
+
+  val User = ObjectType("User", "Just User",
+    fields = fields[Unit, UserEntity](
+      Field("id", OptionType(LongType),
+        Some("The id of the user"),
+        resolve = _.value.id
+      ),
+      Field("username", StringType,
+        Some("The name of the user"),
+        resolve = _.value.username
+      )
+    )
+  )
 
   val Event = ObjectType(
     "Event",
@@ -93,6 +108,10 @@ object SchemaDefinition {
   val Limit = Argument("limit", IntType, description = "event list limit")
 
   val QueryType = ObjectType("Query", fields[EventContext, Unit](
+    Field("me", OptionType(User),
+      tags = Authorised :: Nil,
+      resolve = ctx => ctx.ctx.getUserById(ctx.ctx.token.get.userId.get)
+    ),
     Field("event", Event,
       arguments = ID :: Nil,
       tags = Authorised :: Nil,

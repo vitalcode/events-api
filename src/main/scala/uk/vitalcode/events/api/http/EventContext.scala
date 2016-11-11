@@ -18,9 +18,9 @@ case class EventContext(implicit val client: ElasticClient,
                         implicit val databaseService: DatabaseService,
                         implicit val executionContext: ExecutionContext) extends EventService with UsersService with AuthService {
 
-  var token: Option[String] = None
+  var token: Option[TokenEntity] = None
 
-  def setToken(t: Option[String]) = this.token = t
+  def setToken(t: Option[String]) = this.token = t.flatMap(r => Await.result(getToken(r), Duration.Inf))
 
   def login(userName: String, password: String) = Await.result(signIn(userName, password), Duration.Inf) getOrElse (
     throw new AuthenticationException("UserName or password is incorrect"))
@@ -34,7 +34,7 @@ case class EventContext(implicit val client: ElasticClient,
 //  }
 
   def authorised[T](permissions: String*)(fn: UserEntity ⇒ T) =
-    token.flatMap(t => Await.result(authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (authorised)")) {
+    token.flatMap(t => Await.result(authorise(t.token), Duration.Inf)).fold(throw AuthorisationException("Invalid token (authorised)")) {
       user ⇒
         if (permissions.forall(user.permissions.contains)) fn(user)
         else throw AuthorisationException("You do not have permission to do this operation")

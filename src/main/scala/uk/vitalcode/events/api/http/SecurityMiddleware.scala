@@ -34,11 +34,11 @@ object SecurityMiddleware extends Middleware[EventContext] with MiddlewareBefore
   }
 
   private def authenticateUser(ctx: EventContext) = {
-    ctx.token.flatMap(t => Await.result(ctx.authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (SecurityMiddleware)"))(identity)
+    ctx.token.flatMap(t => Await.result(ctx.authorise(t.token), Duration.Inf)).fold(throw AuthorisationException("Invalid token (SecurityMiddleware)"))(identity)
   }
 
   def ensurePermissions(permissions: List[String], ctx: EventContext): Unit =
-    ctx.token.flatMap(t => Await.result(ctx.authorise(t), Duration.Inf)).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) {
+    ctx.token.flatMap(t => Await.result(ctx.authorise(t.token), Duration.Inf)).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) {
       user ⇒
         if (!permissions.forall(user.permissions.contains))
           throw AuthorisationException("You do not have permission to do this operation")
