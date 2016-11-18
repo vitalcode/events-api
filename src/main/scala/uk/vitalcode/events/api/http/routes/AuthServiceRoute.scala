@@ -21,7 +21,7 @@ class AuthServiceRoute(val authService: AuthService)(implicit executionContext: 
       pathEndOrSingleSlash {
         post {
           entity(as[LoginPassword]) { loginPassword =>
-            complete(signIn(loginPassword.login, loginPassword.password).map(_.asJson))
+            complete(login(loginPassword.login, loginPassword.password).map(_.asJson))
           }
         }
       }

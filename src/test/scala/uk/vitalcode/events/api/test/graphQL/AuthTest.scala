@@ -1,12 +1,10 @@
 package uk.vitalcode.events.api.test.graphQL
 
-import akka.http.javadsl.model.headers.HttpCredentials
-import akka.http.scaladsl.model.headers.Authorization
-import akka.http.scaladsl.model.{HttpEntity, HttpRequest, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.{HttpEntity, StatusCodes}
 import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import sangria.macros._
-import spray.json._
+import spray.json.{JsString, _}
 import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
 
@@ -26,30 +24,30 @@ class AuthTest extends BaseTest {
     }
   }
 
-  "Auth mutations" should {
-    "register users and retrieve token" in new Context {
-      val testUser = provisionUser
-      signUpUser(testUser, route) {
-        val token = Await.result(authService.signIn(testUser.username, testUser.password), Duration.Inf)
-        responseAs[JsObject] shouldBe responseToken(token.get.token)
+  "Auth mutations" when {
+    "register" should {
+      "register user and retrieve token" in new Context {
+        val user = testUser
+        registerUser(user, route) {
+          val token = Await.result(authService.login(user.username, user.password), Duration.Inf)
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            s"""
+          {
+            "data": {
+              "token": "${token.get.token}"
+            }
+          }""".parseJson
+        }
       }
     }
-
-    "authorize users by login and password and retrieve token" in new Context {
-      val testUser = testUsers(1)
-      signInUser(testUser, route) {
-        val token = Await.result(authService.signIn(testUser.username, testUser.password), Duration.Inf)
-        token.isDefined shouldBe true
-        responseAs[JsObject] shouldBe responseToken(token.get.token)
-      }
-    }
-
-    "get user information (me) for authorized user" in new Context {
-      val testUser = testUsers(1)
-      me(route, Some(testUser)) {
-        status shouldEqual StatusCodes.OK
-        responseAs[JsObject] shouldBe
-          s"""
+    "me" should {
+      "get user information for authorized user" in new Context {
+        val testUser = testUsers(1)
+        me(route, Some(testUser)) {
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            s"""
           {
             "data": {
               "me": {
@@ -58,15 +56,13 @@ class AuthTest extends BaseTest {
               }
             }
           }""".parseJson
+        }
       }
-    }
-
-    "fail to get user information (me) for unauthorized user" in new Context {
-      me(route) {
-        status shouldEqual StatusCodes.OK
-        val e = responseAs[JsObject]
-        responseAs[JsObject] shouldBe
-          s"""
+      "fail to get user information for unauthorized user" in new Context {
+        me(route) {
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            s"""
           {
             "data": {
               "me": null
@@ -80,35 +76,12 @@ class AuthTest extends BaseTest {
               }]
             }]
           }""".parseJson
+        }
       }
     }
   }
 
-
-  private def responseToken(token: String) = JsObject("data" -> JsObject("token" -> JsString(token)))
-
-  private def addAuthorizationHeader(request: HttpRequest, user: UserEntity): HttpRequest = {
-    val token = Await.result(authService.signIn(user.username, user.password), Duration.Inf)
-    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.get.token)))
-  }
-
-  private def me(route: server.Route, user: Option[UserEntity] = None)(action: => Unit) = {
-    val query =
-      graphql""" {
-            me {
-              id,
-              username
-            }
-          }
-        """
-    val requestEntity = HttpEntity(MediaTypes.`application/json`,
-      graphRequest(query)
-    )
-    val request = Post("/graphql", requestEntity)
-    user.map(addAuthorizationHeader(request, _)).getOrElse(request) ~> route ~> check(action)
-  }
-
-  private def signUpUser(user: UserEntity, route: server.Route)(action: => Unit) = {
+  private def registerUser(user: UserEntity, route: server.Route)(action: => Unit) = {
     val query =
       graphql"""
         mutation signUp ($$user: String ! $$password: String !)
@@ -116,23 +89,20 @@ class AuthTest extends BaseTest {
           token: signUp (user: $$user password: $$password)
         }
         """
-    val requestEntity = HttpEntity(MediaTypes.`application/json`,
-      graphRequest(query, vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password)))
-    )
-    Post("/graphql", requestEntity) ~> route ~> check(action)
+    graphCheck(route, query,
+      vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password))
+    )(action)
   }
 
-  private def signInUser(user: UserEntity, route: server.Route)(action: => Unit) = {
+  private def me(route: server.Route, user: Option[UserEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
-        mutation logIn ($$user: String ! $$password: String !)
-        {
-          token: logIn (user: $$user password: $$password)
+      {
+        me {
+          id,
+          username
         }
-        """
-    val requestEntity = HttpEntity(MediaTypes.`application/json`,
-      graphRequest(query, vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password)))
-    )
-    Post("/graphql", requestEntity) ~> route ~> check(action)
+      }"""
+    graphCheck(route, query, user)(action)
   }
 }

@@ -22,7 +22,7 @@ case class EventContext(implicit val client: ElasticClient,
 
   def setToken(t: Option[String]) = this.token = t.flatMap(r => Await.result(getToken(r), Duration.Inf))
 
-  def login(userName: String, password: String) = Await.result(signIn(userName, password), Duration.Inf) getOrElse (
+  def login2(userName: String, password: String) = Await.result(login(userName, password), Duration.Inf) getOrElse (
     throw new AuthenticationException("UserName or password is incorrect"))
 
 //  def signUp(login: String, pass: String): TokenEntity = {

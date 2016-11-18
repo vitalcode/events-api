@@ -16,9 +16,9 @@ trait AuthService extends TokenEntityTable {
   import databaseService._
   import databaseService.driver.api._
 
-  def signIn(login: String, password: String): Future[Option[TokenEntity]] = {
-    // TODO password hash
-    db.run(users.filter(u => u.username === login).result)
+  // TODO password hash
+  def login(username: String, password: String): Future[Option[TokenEntity]] = {
+    db.run(users.filter(u => u.username === username).result)
       .flatMap { users => users.find(user => user.password == password) match {
         case Some(user) => db.run(tokens.filter(_.userId === user.id).result.headOption).flatMap {
           case Some(token) => Future.successful(Some(token))
@@ -28,6 +28,9 @@ trait AuthService extends TokenEntityTable {
       }
       }
   }
+
+
+
 
   def signup(newUser: UserEntity): Future[TokenEntity] = {
     createUser(newUser).flatMap(user => createToken(user))

@@ -120,7 +120,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           }
         }
         """
-    val token = Await.result(authService.signIn(user.username, user.password), Duration.Inf)
+    val token = Await.result(authService.login(user.username, user.password), Duration.Inf)
     val requestEntity = HttpEntity(MediaTypes.`application/json`,
       graphRequest(query, vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10)))
     )
