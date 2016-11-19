@@ -139,6 +139,17 @@ object SchemaDefinition {
         ctx.ctx // todo copy no mutation
         //        ctx.ctx.copy(token = Some(token.token))
       }),
+    Field("logout", StringType,
+      resolve = ctx ⇒ UpdateCtx {
+        ctx.ctx.logout(ctx.ctx.token.get)
+        "ok"
+      } { e ⇒
+        ctx.ctx.setToken(None)
+        ctx.ctx // todo copy no mutation
+        //        ctx.ctx.copy(token = Some(token.token))
+      }),
+
+
     Field("register", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒

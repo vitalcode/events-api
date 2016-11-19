@@ -45,10 +45,25 @@ class AuthTest extends BaseTest {
         }
       }
     }
-    //    "logout" should {
-    //      "remove user login from the database"
-    //
-    //    }
+    "logout" should {
+      "remove user token from the database" in new Context {
+        val user = testUsers(0)
+        val token = Await.result(authService.login(user), Duration.Inf)
+        logout(route, token) {
+          val tokenAfterLogout = Await.result(authService.tokenByUser(user), Duration.Inf)
+          tokenAfterLogout shouldBe None
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            """
+            {
+              "data":{
+                "logout":"ok"
+              }
+            }
+            """.parseJson
+        }
+      }
+    }
     //    "users" should {
     //      "return all registered users"
     //    }
@@ -129,6 +144,17 @@ class AuthTest extends BaseTest {
     graphCheck(route, query,
       vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password))
     )(action)
+  }
+
+  private def logout(route: server.Route, token: Option[TokenEntity] = None)(action: => Unit) = {
+    val query =
+      graphql"""
+        mutation
+        {
+          logout
+        }
+        """
+    graphCheck(route, query, token)(action)
   }
 
   private def tokenResponse(token: String) = {

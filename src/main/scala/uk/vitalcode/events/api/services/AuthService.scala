@@ -31,6 +31,8 @@ trait AuthService extends TokenEntityTable {
 
   def login(user: UserEntity): Future[Option[TokenEntity]] = login(user.username, user.password)
 
+  def logout(token: TokenEntity) = db.run(tokens.filter(_.id === token.id).delete)
+
   def signup(newUser: UserEntity): Future[TokenEntity] = {
     createUser(newUser).flatMap(user => createToken(user))
   }
