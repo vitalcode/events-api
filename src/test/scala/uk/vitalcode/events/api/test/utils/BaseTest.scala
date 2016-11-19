@@ -17,7 +17,7 @@ import sangria.renderer.QueryRenderer
 import spray.json.{JsObject, JsString}
 import uk.vitalcode.events.api.http.routes.SchemaDefinition
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
-import uk.vitalcode.events.api.models.UserEntity
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.services.{AuthService, UsersService}
 import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
 import uk.vitalcode.events.api.utils.DatabaseService
@@ -79,7 +79,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     ).compactPrint
   }
 
-  protected def graphCheck(route: server.Route, document: Document, user: Option[UserEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
+  protected def graphCheck(route: server.Route, document: Document, token: Option[TokenEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
     val query = QueryRenderer.render(document, QueryRenderer.Compact)
     val requestBody = JsObject(
       "query" -> JsString(query),
@@ -87,7 +87,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     ).compactPrint
     val requestEntity = HttpEntity(MediaTypes.`application/json`, requestBody)
     val request = Post("/graphql", requestEntity)
-    user.map(addAuthorizationHeader(request, _)).getOrElse(request) ~> route ~> check(action)
+    token.map(addAuthorizationHeader(request, _)).getOrElse(request) ~> route ~> check(action)
   }
 
   protected def graphCheck(route: server.Route, document: Document, vars: JsObject)(action: => Unit): Unit =
@@ -96,8 +96,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
   protected def graphCheck(route: server.Route, document: Document)(action: => Unit): Unit =
     graphCheck(route, document, None)(action)
 
-  private def addAuthorizationHeader(request: HttpRequest, user: UserEntity): HttpRequest = {
-    val token = Await.result(authService.login(user.username, user.password), Duration.Inf)
-    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.get.token)))
+  private def addAuthorizationHeader(request: HttpRequest, token: TokenEntity): HttpRequest = {
+    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.token)))
   }
 }

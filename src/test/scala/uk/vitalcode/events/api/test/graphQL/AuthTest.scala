@@ -5,7 +5,7 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import sangria.macros._
 import spray.json.{JsString, _}
-import uk.vitalcode.events.api.models.UserEntity
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.test.utils.BaseTest
 
 import scala.concurrent.Await
@@ -45,25 +45,26 @@ class AuthTest extends BaseTest {
         }
       }
     }
-//    "logout" should {
-//      "remove user login from the database"
-//
-//    }
-//    "users" should {
-//      "return all registered users"
-//    }
+    //    "logout" should {
+    //      "remove user login from the database"
+    //
+    //    }
+    //    "users" should {
+    //      "return all registered users"
+    //    }
     "me" should {
       "get user information for authorized user" in new Context {
-        val testUser = testUsers(1)
-        me(route, Some(testUser)) {
+        val user = testUsers(1)
+        val token = Await.result(authService.login(user), Duration.Inf)
+        me(route, token) {
           status shouldEqual StatusCodes.OK
           responseAs[JsObject] shouldBe
             s"""
           {
             "data": {
               "me": {
-                "id": ${testUser.id.get},
-                "username": "${testUser.username}"
+                "id": ${user.id.get},
+                "username": "${user.username}"
               }
             }
           }""".parseJson
@@ -105,7 +106,7 @@ class AuthTest extends BaseTest {
     )(action)
   }
 
-  private def me(route: server.Route, user: Option[UserEntity] = None)(action: => Unit) = {
+  private def me(route: server.Route, token: Option[TokenEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
       {
@@ -114,7 +115,7 @@ class AuthTest extends BaseTest {
           username
         }
       }"""
-    graphCheck(route, query, user)(action)
+    graphCheck(route, query, token)(action)
   }
 
   private def login(route: server.Route, user: UserEntity)(action: => Unit) = {
