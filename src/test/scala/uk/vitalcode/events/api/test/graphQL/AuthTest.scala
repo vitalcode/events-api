@@ -24,23 +24,34 @@ class AuthTest extends BaseTest {
     }
   }
 
-  "Auth mutations" when {
+  "Auth" when {
     "register" should {
       "register user and retrieve token" in new Context {
         val user = testUser
-        registerUser(user, route) {
+        registerUser(route, user) {
           val token = Await.result(authService.login(user.username, user.password), Duration.Inf)
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
-            s"""
-          {
-            "data": {
-              "token": "${token.get.token}"
-            }
-          }""".parseJson
+          responseAs[JsObject] shouldBe tokenResponse(token.get.token)
         }
       }
     }
+    "login" should {
+      "create and return new token for the user with correct login credentials" in new Context {
+        val user = testUsers(1)
+        login(route, user) {
+          val token = Await.result(authService.tokenByUser(user), Duration.Inf)
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe tokenResponse(token.get.token)
+        }
+      }
+    }
+//    "logout" should {
+//      "remove user login from the database"
+//
+//    }
+//    "users" should {
+//      "return all registered users"
+//    }
     "me" should {
       "get user information for authorized user" in new Context {
         val testUser = testUsers(1)
@@ -81,12 +92,12 @@ class AuthTest extends BaseTest {
     }
   }
 
-  private def registerUser(user: UserEntity, route: server.Route)(action: => Unit) = {
+  private def registerUser(route: server.Route, user: UserEntity)(action: => Unit) = {
     val query =
       graphql"""
-        mutation signUp ($$user: String ! $$password: String !)
+        mutation register ($$user: String ! $$password: String !)
         {
-          token: signUp (user: $$user password: $$password)
+          token: register (user: $$user password: $$password)
         }
         """
     graphCheck(route, query,
@@ -104,5 +115,27 @@ class AuthTest extends BaseTest {
         }
       }"""
     graphCheck(route, query, user)(action)
+  }
+
+  private def login(route: server.Route, user: UserEntity)(action: => Unit) = {
+    val query =
+      graphql"""
+        mutation login ($$user: String ! $$password: String !)
+        {
+          token: login (user: $$user password: $$password)
+        }
+        """
+    graphCheck(route, query,
+      vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password))
+    )(action)
+  }
+
+  private def tokenResponse(token: String) = {
+    s"""
+    {
+      "data": {
+        "token": "${token}"
+      }
+    }""".parseJson
   }
 }

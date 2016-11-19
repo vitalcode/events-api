@@ -62,4 +62,6 @@ trait AuthService extends TokenEntityTable {
   }
 
   def getToken(token: String): Future[Option[TokenEntity]] = db.run(tokens.filter(_.token === token).result.headOption)
+
+  def tokenByUser(user: UserEntity):Future[Option[TokenEntity]] = db.run(tokens.filter(_.userId === user.id).result.headOption)
 }

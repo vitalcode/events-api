@@ -132,14 +132,14 @@ object SchemaDefinition {
   val RoleArg = Argument("role", StringType)
 
   val MutationType = ObjectType("Mutation", fields[EventContext, Unit](
-    Field("logIn", OptionType(StringType),
+    Field("login", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.login2(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).token) { token ⇒
         ctx.ctx.setToken(Some(token))
         ctx.ctx // todo copy no mutation
         //        ctx.ctx.copy(token = Some(token.token))
       }),
-    Field("signUp", OptionType(StringType),
+    Field("register", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒
         ctx.ctx.setToken(Some(token))
