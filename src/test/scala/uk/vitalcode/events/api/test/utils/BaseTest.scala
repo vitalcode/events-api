@@ -50,6 +50,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
 
   def provisionUsersList(size: Int): Seq[UserEntity] = {
+    usersService.deleteAllUsers
     val savedUsers = (1 to size).map(_ => testUser).map(usersService.createUser)
     Await.result(Future.sequence(savedUsers), 10.seconds)
   }

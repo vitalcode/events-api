@@ -47,7 +47,7 @@ class AuthTest extends BaseTest {
     }
     "logout" should {
       "remove user token from the database" in new Context {
-        val user = testUsers(0)
+        val user = testUsers.head
         val token = Await.result(authService.login(user), Duration.Inf)
         logout(route, token) {
           val tokenAfterLogout = Await.result(authService.tokenByUser(user), Duration.Inf)
@@ -64,9 +64,22 @@ class AuthTest extends BaseTest {
         }
       }
     }
-    //    "users" should {
-    //      "return all registered users"
-    //    }
+    "users" should {
+      "return all registered users" in new Context {
+        val user = testUsers.head
+        val token = Await.result(authService.login(user), Duration.Inf)
+        users(route, token) {
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            JsObject("data" ->
+              JsObject("users" -> JsArray(testUsers.sortBy(u => u.id).map(u => JsObject(
+                "id" -> JsNumber(u.id.get),
+                "username" -> JsString(u.username)
+              )).toVector))
+            )
+        }
+      }
+    }
     "me" should {
       "get user information for authorized user" in new Context {
         val user = testUsers(1)
@@ -154,6 +167,18 @@ class AuthTest extends BaseTest {
           logout
         }
         """
+    graphCheck(route, query, token)(action)
+  }
+
+  private def users(route: server.Route, token: Option[TokenEntity] = None)(action: => Unit) = {
+    val query =
+      graphql"""
+      {
+        users {
+          id,
+          username
+        }
+      }"""
     graphCheck(route, query, token)(action)
   }
 

@@ -14,7 +14,7 @@ trait UsersService extends UserEntityTable {
   import databaseService._
   import databaseService.driver.api._
 
-  def getUsers: Future[Seq[UserEntity]] = db.run(users.result)
+  def getUsers: Future[Seq[UserEntity]] = db.run(users.sortBy(u => u.id).result)
 
   def getUserById(id: Long): Future[Option[UserEntity]] = db.run(users.filter(_.id === id).result.headOption)
 
@@ -32,4 +32,6 @@ trait UsersService extends UserEntityTable {
   }
 
   def deleteUser(id: Long): Future[Int] = db.run(users.filter(_.id === id).delete)
+
+  def deleteAllUsers = db.run(users.delete)
 }

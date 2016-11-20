@@ -112,6 +112,10 @@ object SchemaDefinition {
       tags = Authorised :: Nil,
       resolve = ctx => ctx.ctx.getUserById(ctx.ctx.token.get.userId.get)
     ),
+    Field("users", ListType(User),
+      tags = Authorised :: Nil,
+      resolve = ctx => ctx.ctx.getUsers
+    ),
     Field("event", Event,
       arguments = ID :: Nil,
       tags = Authorised :: Nil,
