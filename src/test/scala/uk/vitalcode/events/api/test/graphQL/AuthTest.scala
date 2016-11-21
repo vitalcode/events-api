@@ -5,7 +5,7 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import sangria.macros._
 import spray.json.{JsString, _}
-import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
 import uk.vitalcode.events.api.test.utils.BaseTest
 
 import scala.concurrent.Await
@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 class AuthTest extends BaseTest {
 
   trait Context {
-    val testUsers = provisionUsersList(2)
+    val testUsers = dbTestUsers(2)
     val route = httpService.graphQLRoute.route
   }
 
@@ -25,19 +25,46 @@ class AuthTest extends BaseTest {
   }
 
   "Auth" when {
-    "register" should {
-      "register user and retrieve token" in new Context {
-        val user = testUser
-        registerUser(route, user) {
-          val token = Await.result(authService.login(user.username, user.password), Duration.Inf)
-          status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe tokenResponse(token.get.token)
+    "register" when {
+      "admin user" should {
+        "register new user and retrieve its token" in new Context {
+          val admin = adminUser(testUsers)
+          val newUser = createTestUser()
+          registerUser(route, newUser, userToken(admin)) {
+            status shouldEqual StatusCodes.OK
+            responseAs[JsObject] shouldBe tokenResponse(userToken(newUser).get.token)
+          }
+        }
+      }
+      "not admin user" should {
+        "fail to register new user" in new Context {
+          val user = basicUser(testUsers)
+          val newUser = createTestUser()
+          registerUser(route, newUser, userToken(user)) {
+            status shouldEqual StatusCodes.OK
+            responseAs[JsObject] shouldBe {
+              """
+              {
+                "data": {
+                  "token": null
+                },
+                "errors": [{
+                  "message": "You do not have permission to perform this operation",
+                  "path": ["token"],
+                  "locations": [{
+                    "line": 1,
+                    "column": 52
+                  }]
+                }]
+              }""".parseJson
+            }
+          }
         }
       }
     }
     "login" should {
       "create and return new token for the user with correct login credentials" in new Context {
-        val user = testUsers(1)
+        val user = basicUser(testUsers)
         login(route, user) {
           val token = Await.result(authService.tokenByUser(user), Duration.Inf)
           status shouldEqual StatusCodes.OK
@@ -47,7 +74,7 @@ class AuthTest extends BaseTest {
     }
     "logout" should {
       "remove user token from the database" in new Context {
-        val user = testUsers.head
+        val user = basicUser(testUsers)
         val token = Await.result(authService.login(user), Duration.Inf)
         logout(route, token) {
           val tokenAfterLogout = Await.result(authService.tokenByUser(user), Duration.Inf)
@@ -66,7 +93,7 @@ class AuthTest extends BaseTest {
     }
     "users" should {
       "return all registered users" in new Context {
-        val user = testUsers.head
+        val user = basicUser(testUsers)
         val token = Await.result(authService.login(user), Duration.Inf)
         users(route, token) {
           status shouldEqual StatusCodes.OK
@@ -82,7 +109,7 @@ class AuthTest extends BaseTest {
     }
     "me" should {
       "get user information for authorized user" in new Context {
-        val user = testUsers(1)
+        val user = basicUser(testUsers)
         val token = Await.result(authService.login(user), Duration.Inf)
         me(route, token) {
           status shouldEqual StatusCodes.OK
@@ -121,7 +148,7 @@ class AuthTest extends BaseTest {
     }
   }
 
-  private def registerUser(route: server.Route, user: UserEntity)(action: => Unit) = {
+  private def registerUser(route: server.Route, user: UserEntity, token: Option[TokenEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
         mutation register ($$user: String ! $$password: String !)
@@ -129,7 +156,7 @@ class AuthTest extends BaseTest {
           token: register (user: $$user password: $$password)
         }
         """
-    graphCheck(route, query,
+    graphCheck(route, query, token,
       vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password))
     )(action)
   }
@@ -180,6 +207,18 @@ class AuthTest extends BaseTest {
         }
       }"""
     graphCheck(route, query, token)(action)
+  }
+
+  private def adminUser(users: Seq[UserEntity]) = {
+    users.find(_.permissions.contains(UserPermission.ADMIN.toString)).get
+  }
+
+  private def basicUser(users: Seq[UserEntity]) = {
+    users.find(_.permissions.isEmpty).get
+  }
+
+  private def userToken(user: UserEntity) = {
+    Await.result(authService.login(user.username, user.password), Duration.Inf)
   }
 
   private def tokenResponse(token: String) = {

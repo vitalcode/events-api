@@ -17,11 +17,13 @@ import sangria.renderer.QueryRenderer
 import spray.json.{JsObject, JsString}
 import uk.vitalcode.events.api.http.routes.SchemaDefinition
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
-import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
+import uk.vitalcode.events.api.models.UserPermission._
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
 import uk.vitalcode.events.api.services.{AuthService, UsersService}
 import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
 import uk.vitalcode.events.api.utils.DatabaseService
 
+import scala.collection.immutable.IndexedSeq
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
@@ -48,14 +50,19 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
   val httpService = new HttpService(usersService, authService, eventContext)
 
-
-  def provisionUsersList(size: Int): Seq[UserEntity] = {
+  def dbTestUsers(size: Int): Seq[UserEntity] = {
     usersService.deleteAllUsers
-    val savedUsers = (1 to size).map(_ => testUser).map(usersService.createUser)
+    val savedUsers = (1 to size).map {
+      case 1 => createTestUser(UserPermission.ADMIN)
+      case _ => createTestUser()
+    }.map(usersService.createUser)
     Await.result(Future.sequence(savedUsers), 10.seconds)
   }
 
-  def testUser: UserEntity = UserEntity(Some(Random.nextLong()), Random.nextString(10), Random.nextString(10), None)
+  def createTestUser(permissions: UserPermission*): UserEntity = {
+    val userPermissions = if (permissions.nonEmpty) Some(permissions.mkString(",")) else None
+    UserEntity(Some(Random.nextLong()), Random.nextString(10), Random.nextString(10), userPermissions)
+  }
 
   def provisionTokensForUsers(usersList: Seq[UserEntity]) = {
     val savedTokens = usersList.map(authService.createToken)

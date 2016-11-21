@@ -41,6 +41,6 @@ object SecurityMiddleware extends Middleware[EventContext] with MiddlewareBefore
     ctx.token.flatMap(t => Await.result(ctx.authorise(t.token), Duration.Inf)).fold(throw AuthorisationException("Invalid token (ensurePermissions)")) {
       user ⇒
         if (!permissions.forall(user.permissions.contains))
-          throw AuthorisationException("You do not have permission to do this operation")
+          throw AuthorisationException("You do not have permission to perform this operation")
     }
 }

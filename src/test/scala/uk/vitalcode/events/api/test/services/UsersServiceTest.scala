@@ -14,7 +14,7 @@ class UsersServiceTest extends BaseTest with ScalaFutures {
   import usersService._
 
   trait Context {
-    val testUsers = provisionUsersList(5)
+    val testUsers = dbTestUsers(5)
     val testTokens = provisionTokensForUsers(testUsers)
     val route = httpService.usersRouter.route
   }

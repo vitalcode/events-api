@@ -18,7 +18,7 @@ import scala.concurrent.duration.Duration
 class EventsTest extends WordSpec with Matchers with BaseTest {
 
   trait Context {
-    val testUsers = provisionUsersList(2)
+    val testUsers = dbTestUsers(2)
     val route = httpService.graphQLRoute.route
   }
 
