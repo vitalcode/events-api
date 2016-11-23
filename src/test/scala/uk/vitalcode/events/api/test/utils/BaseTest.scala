@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.headers.Authorization
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, MediaTypes}
 import akka.http.scaladsl.server
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.IndexType
 import com.sksamuel.elastic4s.testkit.ElasticSugar
@@ -14,7 +15,7 @@ import sangria.ast.Document
 import sangria.execution.Executor
 import sangria.marshalling.sprayJson._
 import sangria.renderer.QueryRenderer
-import spray.json.{JsObject, JsString}
+import spray.json.{JsArray, JsObject, JsString, _}
 import uk.vitalcode.events.api.http.routes.SchemaDefinition
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
 import uk.vitalcode.events.api.models.UserPermission._
@@ -23,7 +24,6 @@ import uk.vitalcode.events.api.services.{AuthService, UsersService}
 import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
 import uk.vitalcode.events.api.utils.DatabaseService
 
-import scala.collection.immutable.IndexedSeq
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
@@ -109,5 +109,30 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
   protected def userToken(user: UserEntity) = {
     Await.result(authService.login(user.username, user.password), Duration.Inf)
+  }
+
+  trait Context {
+    val testUsers = dbTestUsers(2)
+    val route = httpService.graphQLRoute.route
+  }
+
+  case class GraphqlError(message: String, path: String)
+
+  implicit val umGraphqlError: Unmarshaller[HttpEntity, GraphqlError] = {
+    Unmarshaller.byteStringUnmarshaller.mapWithCharset {
+      (data, charset) => {
+        val json = data.utf8String.parseJson.asJsObject
+        val errors = json.getFields("errors").head.asInstanceOf[JsArray].elements.head.asInstanceOf[JsObject]
+        val message = errors.fields("message").asInstanceOf[JsString].value
+        val path = errors.fields("path").asInstanceOf[JsArray].elements.head.asInstanceOf[JsString].value
+        GraphqlError(message, path)
+      }
+    }
+  }
+
+  implicit val umJsObject: Unmarshaller[HttpEntity, JsObject] = {
+    Unmarshaller.byteStringUnmarshaller.mapWithCharset { (data, charset) =>
+      data.utf8String.parseJson.asJsObject
+    }
   }
 }

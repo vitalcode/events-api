@@ -1,28 +1,16 @@
 package uk.vitalcode.events.api.test.graphQL
 
-import akka.http.scaladsl.model.{HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server
-import akka.http.scaladsl.unmarshalling.Unmarshaller
 import sangria.macros._
 import spray.json.{JsString, _}
-import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.test.utils.BaseTest
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 class AuthTest extends BaseTest {
-
-  trait Context {
-    val testUsers = dbTestUsers(2)
-    val route = httpService.graphQLRoute.route
-  }
-
-  implicit val um: Unmarshaller[HttpEntity, JsObject] = {
-    Unmarshaller.byteStringUnmarshaller.mapWithCharset { (data, charset) =>
-      data.utf8String.parseJson.asJsObject
-    }
-  }
 
   "authentication" when {
     "register" when {

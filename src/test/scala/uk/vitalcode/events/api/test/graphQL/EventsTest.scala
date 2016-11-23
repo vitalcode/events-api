@@ -1,8 +1,7 @@
 package uk.vitalcode.events.api.test.graphQL
 
-import akka.http.scaladsl.model.{HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server
-import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.sksamuel.elastic4s.ElasticDsl.{index, _}
 import org.scalatest.{Matchers, WordSpec}
 import sangria.macros._
@@ -11,31 +10,6 @@ import uk.vitalcode.events.api.models.TokenEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
 
 class EventsTest extends WordSpec with Matchers with BaseTest {
-
-  trait Context {
-    val testUsers = dbTestUsers(2)
-    val route = httpService.graphQLRoute.route
-  }
-
-  case class GraphqlError(message: String, path: String)
-
-  implicit val umGraphqlError: Unmarshaller[HttpEntity, GraphqlError] = {
-    Unmarshaller.byteStringUnmarshaller.mapWithCharset {
-      (data, charset) => {
-        val json = data.utf8String.parseJson.asJsObject
-        val errors = json.getFields("errors").head.asInstanceOf[JsArray].elements.head.asInstanceOf[JsObject]
-        val message = errors.fields("message").asInstanceOf[JsString].value
-        val path = errors.fields("path").asInstanceOf[JsArray].elements.head.asInstanceOf[JsString].value
-        GraphqlError(message, path)
-      }
-    }
-  }
-
-  implicit val umJsObject: Unmarshaller[HttpEntity, JsObject] = {
-    Unmarshaller.byteStringUnmarshaller.mapWithCharset { (data, charset) =>
-      data.utf8String.parseJson.asJsObject
-    }
-  }
 
   client.execute {
     bulk(

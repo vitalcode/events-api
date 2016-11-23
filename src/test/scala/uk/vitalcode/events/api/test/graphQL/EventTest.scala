@@ -1,5 +1,6 @@
 package uk.vitalcode.events.api.test.graphQL
 
+import akka.http.scaladsl.model.StatusCodes
 import com.sksamuel.elastic4s.ElasticDsl.{index, _}
 import org.scalatest.{Matchers, WordSpec}
 import sangria.macros._
@@ -40,45 +41,77 @@ class EventTest extends WordSpec with Matchers with BaseTest {
 
   blockUntilCount(2, indexName)
 
-  "GraphQL: event" should {
-    val query =
-      graphql"""
-          query FetchEvent($$eventId: String!) {
-            event(id: $$eventId) {
+  val query =
+    graphql"""
+      query FetchEvent($$eventId: String!) {
+        event(id: $$eventId) {
+          category
+          description
+          from
+        }
+      }"""
+
+  "event" when {
+    "authenticated user" should {
+      "correctly return event when requesting using event corresponding event ID" in new Context {
+        val user = basicUser(testUsers)
+        graphCheck(route, query, userToken(user), JsObject("eventId" → JsString("1"))) {
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            """
+            {
+              "data": {
+                "event": {
+                  "category": ["FAMILY"],
+                  "description": ["line1: event1", "line2: event1", "line3: event1"],
+                  "from": ["2016-01-06T11:00:00"]
+                }
+              }
+            }""".parseJson
+        }
+      }
+      "fail if event ID is not provided" in new Context {
+        val user = basicUser(testUsers)
+        val queryNoEventId =
+          graphql"""
+          {
+            event {
               category
               description
               from
             }
-          }
-          """
-
-    "correctly return event when requested using event ID" in {
-      executeQuery(query, vars = JsObject("eventId" → JsString("1"))) should be(
-        """
-         {
-           "data": {
-             "event": {
-               "category": ["FAMILY"],
-               "description": ["line1: event1", "line2: event1", "line3: event1"],
-               "from": ["2016-01-06T11:00:00"]
-             }
-           }
-         }
-        """.parseJson)
+          }"""
+        graphCheck(route, queryNoEventId, userToken(user))(
+          status shouldEqual StatusCodes.BadRequest
+        )
+      }
+      "ignore requested fields if they are not defined in elastic index" in new Context {
+        val user = basicUser(testUsers)
+        graphCheck(route, query, userToken(user), JsObject("eventId" → JsString("2"))) {
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            """
+            {
+              "data": {
+                "event": {
+                  "category": ["MUSIC"],
+                  "description": null,
+                  "from": ["2016-01-07T11:00:00"]
+                }
+              }
+            }""".parseJson
+        }
+      }
     }
-    "ignore requested fields if they are not defined in elastic index" in {
-      executeQuery(query, vars = JsObject("eventId" → JsString("2"))) should be(
-        """
-         {
-           "data": {
-             "event": {
-                "category": ["MUSIC"],
-                "description": null,
-                "from": ["2016-01-07T11:00:00"]
-             }
-           }
-         }
-        """.parseJson)
+    "not authenticated user" should {
+      "fail to return requested event" in new Context {
+        graphCheck(route, query, None, JsObject("eventId" → JsString("1"))) {
+          val error = responseAs[GraphqlError]
+          status shouldEqual StatusCodes.OK
+          error.message shouldBe "Invalid token (SecurityMiddleware)"
+          error.path shouldBe "event"
+        }
+      }
     }
   }
 }
