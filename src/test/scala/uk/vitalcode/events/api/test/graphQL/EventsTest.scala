@@ -1,19 +1,14 @@
 package uk.vitalcode.events.api.test.graphQL
 
-import akka.http.javadsl.model.headers.HttpCredentials
-import akka.http.scaladsl.model.headers.Authorization
-import akka.http.scaladsl.model.{HttpEntity, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.{HttpEntity, StatusCodes}
 import akka.http.scaladsl.server
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.sksamuel.elastic4s.ElasticDsl.{index, _}
 import org.scalatest.{Matchers, WordSpec}
 import sangria.macros._
 import spray.json._
-import uk.vitalcode.events.api.models.UserEntity
+import uk.vitalcode.events.api.models.TokenEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
-
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 class EventsTest extends WordSpec with Matchers with BaseTest {
 
@@ -22,7 +17,21 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
     val route = httpService.graphQLRoute.route
   }
 
-  implicit val um: Unmarshaller[HttpEntity, JsObject] = {
+  case class GraphqlError(message: String, path: String)
+
+  implicit val umGraphqlError: Unmarshaller[HttpEntity, GraphqlError] = {
+    Unmarshaller.byteStringUnmarshaller.mapWithCharset {
+      (data, charset) => {
+        val json = data.utf8String.parseJson.asJsObject
+        val errors = json.getFields("errors").head.asInstanceOf[JsArray].elements.head.asInstanceOf[JsObject]
+        val message = errors.fields("message").asInstanceOf[JsString].value
+        val path = errors.fields("path").asInstanceOf[JsArray].elements.head.asInstanceOf[JsString].value
+        GraphqlError(message, path)
+      }
+    }
+  }
+
+  implicit val umJsObject: Unmarshaller[HttpEntity, JsObject] = {
     Unmarshaller.byteStringUnmarshaller.mapWithCharset { (data, charset) =>
       data.utf8String.parseJson.asJsObject
     }
@@ -87,28 +96,38 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
 
   blockUntilCount(4, indexName)
 
-
-
-  "Auth events" should {
-    "access protected recourse" in new Context {
-      val testUser = testUsers(1)
-      getEvents(testUser, route) {
-        status shouldEqual StatusCodes.OK
-        responseAs[JsObject] shouldBe
-          """
-          {
-            "data": {
-              "events": {
-                "total": 4,
-                "items": [{"id": "1"}, {"id": "2"},{"id": "3"}, {"id": "4"}]
+  "events" when {
+    "authenticated user" should {
+      "return requested events page" in new Context {
+        val user = basicUser(testUsers)
+        events(route, 0, 10, userToken(user)) {
+          status shouldEqual StatusCodes.OK
+          responseAs[JsObject] shouldBe
+            """
+            {
+              "data": {
+                "events": {
+                  "total": 4,
+                  "items": [{"id": "1"}, {"id": "2"},{"id": "3"}, {"id": "4"}]
+                }
               }
-            }
-          }""".parseJson
+            }""".parseJson
+        }
+      }
+    }
+    "not authenticated user" should {
+      "fail to return requested events page" in new Context {
+        events(route, 0, 10, None) {
+          val error = responseAs[GraphqlError]
+          status shouldEqual StatusCodes.OK
+          error.message shouldBe "Invalid token (SecurityMiddleware)"
+          error.path shouldBe "events"
+        }
       }
     }
   }
 
-  private def getEvents(user: UserEntity, route: server.Route)(action: => Unit) = {
+  private def events(route: server.Route, start: Int, limit: Int, token: Option[TokenEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
         query FetchEvents($$start: Int!, $$limit: Int!) {
@@ -120,11 +139,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           }
         }
         """
-    val token = Await.result(authService.login(user.username, user.password), Duration.Inf)
-    val requestEntity = HttpEntity(MediaTypes.`application/json`,
-      graphRequest(query, vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10)))
-    )
-    Post("/graphql", requestEntity).addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.get.token))) ~> route ~> check(action)
+    graphCheck(route, query, token, vars = JsObject("start" → JsNumber(start), "limit" → JsNumber(limit)))(action)
   }
 
 

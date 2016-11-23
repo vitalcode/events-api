@@ -78,15 +78,6 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     ).await
   }
 
-  // todo remove and move to graphqlRequest
-  protected def graphRequest(document: Document, vars: JsObject = JsObject.empty): String = {
-    val query = QueryRenderer.render(document, QueryRenderer.Compact)
-    JsObject(
-      "query" -> JsString(query),
-      "variables" -> JsString(vars.toString)
-    ).compactPrint
-  }
-
   protected def graphCheck(route: server.Route, document: Document, token: Option[TokenEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
     val query = QueryRenderer.render(document, QueryRenderer.Compact)
     val requestBody = JsObject(
@@ -106,5 +97,17 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
   private def addAuthorizationHeader(request: HttpRequest, token: TokenEntity): HttpRequest = {
     request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.token)))
+  }
+
+  protected def adminUser(users: Seq[UserEntity]) = {
+    users.find(_.permissions.contains(UserPermission.ADMIN.toString)).get
+  }
+
+  protected def basicUser(users: Seq[UserEntity]) = {
+    users.find(_.permissions.isEmpty).get
+  }
+
+  protected def userToken(user: UserEntity) = {
+    Await.result(authService.login(user.username, user.password), Duration.Inf)
   }
 }

@@ -209,18 +209,6 @@ class AuthTest extends BaseTest {
     graphCheck(route, query, token)(action)
   }
 
-  private def adminUser(users: Seq[UserEntity]) = {
-    users.find(_.permissions.contains(UserPermission.ADMIN.toString)).get
-  }
-
-  private def basicUser(users: Seq[UserEntity]) = {
-    users.find(_.permissions.isEmpty).get
-  }
-
-  private def userToken(user: UserEntity) = {
-    Await.result(authService.login(user.username, user.password), Duration.Inf)
-  }
-
   private def tokenResponse(token: String) = {
     s"""
     {
