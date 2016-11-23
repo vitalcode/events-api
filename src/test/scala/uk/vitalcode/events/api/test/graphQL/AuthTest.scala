@@ -24,7 +24,7 @@ class AuthTest extends BaseTest {
     }
   }
 
-  "Auth" when {
+  "authentication" when {
     "register" when {
       "admin user" should {
         "register new user and retrieve its token" in new Context {
