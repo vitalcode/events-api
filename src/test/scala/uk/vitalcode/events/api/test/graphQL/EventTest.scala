@@ -57,7 +57,7 @@ class EventTest extends WordSpec with Matchers with BaseTest {
         val user = basicUser(testUsers)
         graphCheck(route, query, userToken(user), JsObject("eventId" → JsString("1"))) {
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
+          responseAs[JsValue] shouldBe
             """
             {
               "data": {
@@ -89,7 +89,7 @@ class EventTest extends WordSpec with Matchers with BaseTest {
         val user = basicUser(testUsers)
         graphCheck(route, query, userToken(user), JsObject("eventId" → JsString("2"))) {
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
+          responseAs[JsValue] shouldBe
             """
             {
               "data": {

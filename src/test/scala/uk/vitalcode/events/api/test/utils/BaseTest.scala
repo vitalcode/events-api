@@ -1,6 +1,8 @@
 package uk.vitalcode.events.api.test.utils
 
 import akka.http.javadsl.model.headers.HttpCredentials
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.headers.Authorization
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, MediaTypes}
 import akka.http.scaladsl.server
@@ -12,11 +14,8 @@ import com.sksamuel.elastic4s.testkit.ElasticSugar
 import de.heikoseeberger.akkahttpcirce.CirceSupport
 import org.scalatest._
 import sangria.ast.Document
-import sangria.execution.Executor
-import sangria.marshalling.sprayJson._
 import sangria.renderer.QueryRenderer
-import spray.json.{JsArray, JsObject, JsString, _}
-import uk.vitalcode.events.api.http.routes.SchemaDefinition
+import spray.json.{JsObject, JsString, _}
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
 import uk.vitalcode.events.api.models.UserPermission._
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
@@ -28,7 +27,8 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
 
-trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with CirceSupport with ElasticSugar {
+trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with SprayJsonSupport with CirceSupport
+  with GraphqlErrorSupport with ElasticSugar {
 
   dbProcess
 
@@ -50,7 +50,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
 
   val httpService = new HttpService(usersService, authService, eventContext)
 
-  def dbTestUsers(size: Int): Seq[UserEntity] = {
+  protected def dbTestUsers(size: Int): Seq[UserEntity] = {
     usersService.deleteAllUsers
     val savedUsers = (1 to size).map {
       case 1 => createTestUser(UserPermission.ADMIN)
@@ -59,23 +59,14 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     Await.result(Future.sequence(savedUsers), 10.seconds)
   }
 
-  def createTestUser(permissions: UserPermission*): UserEntity = {
+  protected def createTestUser(permissions: UserPermission*): UserEntity = {
     val userPermissions = if (permissions.nonEmpty) Some(permissions.mkString(",")) else None
     UserEntity(Some(Random.nextLong()), Random.nextString(10), Random.nextString(10), userPermissions)
   }
 
-  def provisionTokensForUsers(usersList: Seq[UserEntity]) = {
+  protected def dbTokensForTestUsers(usersList: Seq[UserEntity]) = {
     val savedTokens = usersList.map(authService.createToken)
     Await.result(Future.sequence(savedTokens), 10.seconds)
-  }
-
-  protected def executeQuery(query: Document, vars: JsObject = JsObject.empty) = {
-    Executor.execute(
-      schema = SchemaDefinition.EventSchema,
-      queryAst = query,
-      variables = vars,
-      userContext = new EventContext()
-    ).await
   }
 
   protected def graphCheck(route: server.Route, document: Document, token: Option[TokenEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
@@ -89,11 +80,13 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
     token.map(addAuthorizationHeader(request, _)).getOrElse(request) ~> route ~> check(action)
   }
 
-  protected def graphCheck(route: server.Route, document: Document, vars: JsObject)(action: => Unit): Unit =
+  protected def graphCheck(route: server.Route, document: Document, vars: JsObject)(action: => Unit): Unit = {
     graphCheck(route, document, None, vars)(action)
+  }
 
-  protected def graphCheck(route: server.Route, document: Document)(action: => Unit): Unit =
+  protected def graphCheck(route: server.Route, document: Document)(action: => Unit): Unit = {
     graphCheck(route, document, None)(action)
+  }
 
   private def addAuthorizationHeader(request: HttpRequest, token: TokenEntity): HttpRequest = {
     request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.token)))
@@ -114,25 +107,5 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Circe
   trait Context {
     val testUsers = dbTestUsers(2)
     val route = httpService.graphQLRoute.route
-  }
-
-  case class GraphqlError(message: String, path: String)
-
-  implicit val umGraphqlError: Unmarshaller[HttpEntity, GraphqlError] = {
-    Unmarshaller.byteStringUnmarshaller.mapWithCharset {
-      (data, charset) => {
-        val json = data.utf8String.parseJson.asJsObject
-        val errors = json.getFields("errors").head.asInstanceOf[JsArray].elements.head.asInstanceOf[JsObject]
-        val message = errors.fields("message").asInstanceOf[JsString].value
-        val path = errors.fields("path").asInstanceOf[JsArray].elements.head.asInstanceOf[JsString].value
-        GraphqlError(message, path)
-      }
-    }
-  }
-
-  implicit val umJsObject: Unmarshaller[HttpEntity, JsObject] = {
-    Unmarshaller.byteStringUnmarshaller.mapWithCharset { (data, charset) =>
-      data.utf8String.parseJson.asJsObject
-    }
   }
 }

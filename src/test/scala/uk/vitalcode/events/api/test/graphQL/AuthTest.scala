@@ -20,7 +20,7 @@ class AuthTest extends BaseTest {
           val newUser = createTestUser()
           registerUser(route, newUser, userToken(admin)) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe tokenResponse(userToken(newUser).get.token)
+            responseAs[JsValue] shouldBe tokenResponse(userToken(newUser).get.token)
           }
         }
       }
@@ -30,7 +30,7 @@ class AuthTest extends BaseTest {
           val newUser = createTestUser()
           registerUser(route, newUser, userToken(user)) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe {
+            responseAs[JsValue] shouldBe {
               """
               {
                 "data": {
@@ -56,7 +56,7 @@ class AuthTest extends BaseTest {
         login(route, user) {
           val token = Await.result(authService.tokenByUser(user), Duration.Inf)
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe tokenResponse(token.get.token)
+          responseAs[JsValue] shouldBe tokenResponse(token.get.token)
         }
       }
     }
@@ -68,7 +68,7 @@ class AuthTest extends BaseTest {
           val tokenAfterLogout = Await.result(authService.tokenByUser(user), Duration.Inf)
           tokenAfterLogout shouldBe None
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
+          responseAs[JsValue] shouldBe
             """
             {
               "data":{
@@ -85,7 +85,7 @@ class AuthTest extends BaseTest {
         val token = Await.result(authService.login(user), Duration.Inf)
         users(route, token) {
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
+          responseAs[JsValue] shouldBe
             JsObject("data" ->
               JsObject("users" -> JsArray(testUsers.sortBy(u => u.id).map(u => JsObject(
                 "id" -> JsNumber(u.id.get),
@@ -101,7 +101,7 @@ class AuthTest extends BaseTest {
         val token = Await.result(authService.login(user), Duration.Inf)
         me(route, token) {
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
+          responseAs[JsValue] shouldBe
             s"""
           {
             "data": {
@@ -116,7 +116,7 @@ class AuthTest extends BaseTest {
       "fail to get user information for unauthorized user" in new Context {
         me(route) {
           status shouldEqual StatusCodes.OK
-          responseAs[JsObject] shouldBe
+          responseAs[JsValue] shouldBe
             s"""
           {
             "data": {

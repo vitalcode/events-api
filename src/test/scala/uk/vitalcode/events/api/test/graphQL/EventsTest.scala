@@ -77,7 +77,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           val user = basicUser(testUsers)
           events(route, 0, 10, userToken(user)) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe
+            responseAs[JsValue] shouldBe
               """
               {
                 "data": {
@@ -93,7 +93,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           val user = basicUser(testUsers)
           events(route, 1, 2, userToken(user)) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe
+            responseAs[JsValue] shouldBe
               """
               {
                 "data": {
@@ -157,7 +157,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "date" -> JsString("2016-01-08T11:00:00"))
           ) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe
+            responseAs[JsValue] shouldBe
               """
               {
                 "data": {
@@ -175,7 +175,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "clue" -> JsString("event2"))
           ) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe
+            responseAs[JsValue] shouldBe
               """
               {
                 "data": {
@@ -193,7 +193,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "category" -> JsString("FAMILY"))
           ) {
             status shouldEqual StatusCodes.OK
-            responseAs[JsObject] shouldBe
+            responseAs[JsValue] shouldBe
               """
               {
                 "data": {
