@@ -9,7 +9,7 @@ import akka.http.scaladsl.server
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.IndexType
+import com.sksamuel.elastic4s.{ElasticClient, IndexType}
 import com.sksamuel.elastic4s.testkit.ElasticSugar
 import de.heikoseeberger.akkahttpcirce.CirceSupport
 import org.scalatest._
@@ -19,9 +19,9 @@ import spray.json.{JsObject, JsString, _}
 import uk.vitalcode.events.api.http.{EventContext, HttpService}
 import uk.vitalcode.events.api.models.UserPermission._
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
-import uk.vitalcode.events.api.services.{AuthService, UsersService}
+import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
-import uk.vitalcode.events.api.utils.DatabaseService
+import uk.vitalcode.events.api.utils.{AppContext, DatabaseService}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -34,21 +34,21 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
 
   val indexName = getClass.getSimpleName.toLowerCase
   val elasticType = "type"
-  implicit val indexType: IndexType = indexName / elasticType
-  implicit val elasticClient = client
+  val indexType: IndexType = indexName / elasticType
 
-  implicit val databaseService2 = new DatabaseService(jdbcUrl, dbUser, dbPassword)
-  val usersService = new {
-    val databaseService = databaseService2
-    val executionContext = executor
-  } with UsersService
-  val authService = new {
-    val databaseService = databaseService2
-    val executionContext = executor
-  } with UsersService with AuthService
-  val eventContext = new EventContext()
+  val app = new AppContext {
+    val cxJdbcUrl = jdbcUrl
+    val cxDbUser = dbUser
+    val cxDbPassword = dbPassword
+    val cxElasticClient = client
+    val cxIndexType = indexType
+    val cxExecutionContext = executor
+  }
 
-  val httpService = new HttpService(usersService, authService, eventContext)
+  val httpService = app.httpService
+  val usersService = app.usersService
+  val authService = app.authService
+  val eventService = app.eventService
 
   protected def dbTestUsers(size: Int): Seq[UserEntity] = {
     usersService.deleteAllUsers

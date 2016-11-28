@@ -7,11 +7,7 @@ import uk.vitalcode.events.api.utils.DatabaseService
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-trait AuthService extends TokenEntityTable {
-  this: UsersService =>
-
-  implicit val executionContext: ExecutionContext
-  val databaseService: DatabaseService
+class AuthService(val databaseService: DatabaseService, usersService: UsersService)(implicit executionContext: ExecutionContext) extends TokenEntityTable {
 
   import databaseService._
   import databaseService.driver.api._
@@ -34,7 +30,7 @@ trait AuthService extends TokenEntityTable {
   def logout(token: TokenEntity) = db.run(tokens.filter(_.id === token.id).delete)
 
   def signup(newUser: UserEntity): Future[TokenEntity] = {
-    createUser(newUser).flatMap(user => createToken(user))
+    usersService.createUser(newUser).flatMap(user => createToken(user))
   }
 
   def signup(login: String, pass: String): Future[TokenEntity] = {
@@ -64,5 +60,5 @@ trait AuthService extends TokenEntityTable {
 
   def getToken(token: String): Future[Option[TokenEntity]] = db.run(tokens.filter(_.token === token).result.headOption)
 
-  def tokenByUser(user: UserEntity):Future[Option[TokenEntity]] = db.run(tokens.filter(_.userId === user.id).result.headOption)
+  def tokenByUser(user: UserEntity): Future[Option[TokenEntity]] = db.run(tokens.filter(_.userId === user.id).result.headOption)
 }

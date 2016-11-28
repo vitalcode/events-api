@@ -10,10 +10,7 @@ import uk.vitalcode.events.api.utils.ElasticServiceSugar
 import org.elasticsearch.search.sort.SortOrder
 import uk.vitalcode.events.model.Category._
 
-trait EventService extends ElasticServiceSugar {
-
-  val client: ElasticClient
-  val indexType: IndexType
+class EventService(val client: ElasticClient, indexType: IndexType) extends ElasticServiceSugar {
 
   def getEvent(eventId: String, fieldSet: String*): Option[Event] = {
 

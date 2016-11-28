@@ -110,20 +110,20 @@ object SchemaDefinition {
   val QueryType = ObjectType("Query", fields[EventContext, Unit](
     Field("me", OptionType(User),
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.getUserById(ctx.ctx.token.get.userId.get)
+      resolve = ctx => ctx.ctx.usersService.getUserById(ctx.ctx.token.get.userId.get)
     ),
     Field("users", ListType(User),
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.getUsers
+      resolve = ctx => ctx.ctx.usersService.getUsers
     ),
     Field("event", Event,
       arguments = ID :: Nil,
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.getEvent(ctx arg ID).get),
+      resolve = ctx => ctx.ctx.eventService.getEvent(ctx arg ID).get),
     Field("events", Page,
       arguments = Date :: Clue :: CategoryArg :: Start :: Limit :: Nil,
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.getEvents(
+      resolve = ctx => ctx.ctx.eventService.getEvents(
         date = ctx.arg(Date),
         clue = ctx.arg(Clue),
         category = ctx.arg(CategoryArg),
@@ -145,7 +145,7 @@ object SchemaDefinition {
       }),
     Field("logout", StringType,
       resolve = ctx ⇒ UpdateCtx {
-        ctx.ctx.logout(ctx.ctx.token.get)
+        ctx.ctx.authService.logout(ctx.ctx.token.get)
         "ok"
       } { e ⇒
         ctx.ctx.setToken(None)
@@ -155,7 +155,7 @@ object SchemaDefinition {
     Field("register", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       tags = Permission("admin") :: Nil,
-      resolve = ctx ⇒ UpdateCtx(ctx.ctx.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒
+      resolve = ctx ⇒ UpdateCtx(ctx.ctx.authService.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒
         ctx.ctx.setToken(Some(token))
         ctx.ctx
       }) //,

@@ -6,10 +6,7 @@ import uk.vitalcode.events.api.utils.DatabaseService
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait UsersService extends UserEntityTable {
-
-  implicit val executionContext: ExecutionContext
-  val databaseService: DatabaseService
+class UsersService(val databaseService: DatabaseService)(implicit executionContext: ExecutionContext) extends UserEntityTable {
 
   import databaseService._
   import databaseService.driver.api._
@@ -33,5 +30,5 @@ trait UsersService extends UserEntityTable {
 
   def deleteUser(id: Long): Future[Int] = db.run(users.filter(_.id === id).delete)
 
-  def deleteAllUsers = db.run(users.delete)
+  def deleteAllUsers() = db.run(users.delete)
 }
