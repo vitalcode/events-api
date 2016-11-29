@@ -13,10 +13,6 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
   import databaseService.driver.api._
 
   // TODO password hash
-
-//  def login2(userName: String, password: String) = Await.result(authService.login(userName, password), Duration.Inf) getOrElse (
-//    throw new AuthenticationException("UserName or password is incorrect"))
-
   def login(username: String, password: String): Future[Option[TokenEntity]] = {
     db.run(users.filter(u => u.username === username).result)
       .flatMap { users => users.find(user => user.password == password) match {

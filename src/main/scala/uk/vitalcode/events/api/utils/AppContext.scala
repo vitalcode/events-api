@@ -18,6 +18,6 @@ trait AppContext {
   lazy val usersService = new UsersService(databaseService)
   lazy val authService = new AuthService(databaseService, usersService)
   lazy val eventService = new EventService(cxElasticClient, cxIndexType)
-  lazy val eventContext = EventContext(authService, usersService, eventService)
+  lazy val eventContext = new EventContext(authService, usersService, eventService)
   lazy val httpService = new HttpService(usersService, authService, eventContext)
 }

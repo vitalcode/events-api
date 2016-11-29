@@ -12,6 +12,8 @@ import scala.concurrent.duration.Duration
 
 class AuthTest extends BaseTest {
 
+  // Test for user stories, e.g. user register -> login -> me (multiple requests)
+
   "authentication" when {
     "register" when {
       "admin user" should {
