@@ -2,6 +2,7 @@ package uk.vitalcode.events.api.http
 
 import sangria.execution.{FieldTag, Middleware, MiddlewareBeforeField, MiddlewareQueryContext}
 import sangria.schema.Context
+import uk.vitalcode.events.api.models.AuthorisationException
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

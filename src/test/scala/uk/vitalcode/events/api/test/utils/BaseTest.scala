@@ -51,7 +51,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
   val eventService = app.eventService
 
   protected def dbTestUsers(size: Int): Seq[UserEntity] = {
-    usersService.deleteAllUsers
+    usersService.deleteAllUsers()
     val savedUsers = (1 to size).map {
       case 1 => createTestUser(UserPermission.ADMIN)
       case _ => createTestUser()

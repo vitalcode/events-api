@@ -7,7 +7,7 @@ import sangria.ast
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 import uk.vitalcode.events.api.http.{Authorised, EventContext, Permission}
-import uk.vitalcode.events.api.models.{Event, Page, UserEntity}
+import uk.vitalcode.events.api.models.{Event, Page, TokenEntity, UserEntity}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
 
@@ -138,11 +138,12 @@ object SchemaDefinition {
   val MutationType = ObjectType("Mutation", fields[EventContext, Unit](
     Field("login", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
-      resolve = ctx ⇒ UpdateCtx(ctx.ctx.login2(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).token) { token ⇒
-        ctx.ctx.setToken(Some(token))
+      resolve = ctx => UpdateCtx(ctx.ctx.authService.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
+        ctx.ctx.setToken(token)
         ctx.ctx // todo copy no mutation
         //        ctx.ctx.copy(token = Some(token.token))
-      }),
+      }.map(_.map(_.token))
+    ),
     Field("logout", StringType,
       resolve = ctx ⇒ UpdateCtx {
         ctx.ctx.authService.logout(ctx.ctx.token.get)
@@ -155,10 +156,11 @@ object SchemaDefinition {
     Field("register", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       tags = Permission("admin") :: Nil,
-      resolve = ctx ⇒ UpdateCtx(ctx.ctx.authService.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg)).map(te => te.token)) { token ⇒
+      resolve = ctx ⇒ UpdateCtx(ctx.ctx.authService.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
         ctx.ctx.setToken(Some(token))
         ctx.ctx
-      }) //,
+      }.map(_.token)
+    ) //,
     //      Field("addRole", OptionType(ListType(StringType)),
     //      arguments = RoleArg :: Nil,
     //      tags = Permission("ADMIN") :: Nil,

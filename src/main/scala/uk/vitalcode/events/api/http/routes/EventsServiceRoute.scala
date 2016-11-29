@@ -10,7 +10,8 @@ import sangria.marshalling.ResultMarshaller
 import sangria.marshalling.sprayJson._
 import sangria.parser.QueryParser
 import spray.json.{JsObject, JsString, JsValue, _}
-import uk.vitalcode.events.api.http.{AuthenticationException, AuthorisationException, EventContext, SecurityMiddleware}
+import uk.vitalcode.events.api.http.{EventContext, SecurityMiddleware}
+import uk.vitalcode.events.api.models.{AuthenticationException, AuthorisationException}
 import uk.vitalcode.events.api.utils.Config
 
 import scala.concurrent.ExecutionContext
@@ -21,10 +22,10 @@ class EventsServiceRoute(val eventContext: EventContext)(implicit executionConte
 
   def authenticator(credentials: Credentials): Option[String] =
     credentials match {
-      case p @ Credentials.Provided(id) => {
+      case p@Credentials.Provided(id) => {
         Some(id)
       }
-//      case p @ Credentials.Provided(id) if p.verify("p4ssw0rd") => Some(id)
+      //      case p @ Credentials.Provided(id) if p.verify("p4ssw0rd") => Some(id)
       //case _ => None
       case _ => Some("test_token")
     }
@@ -52,8 +53,7 @@ class EventsServiceRoute(val eventContext: EventContext)(implicit executionConte
             case _ ⇒ JsObject.empty
           }
 
-          //eventContext.setToken(token.replaceAll("""Bearer""", "").trim)
-          eventContext.setToken(Some(token))
+          eventContext.getAndSetToken(Some(token)) // TODO
 
           QueryParser.parse(query) match {
 

@@ -1,7 +1,7 @@
 package uk.vitalcode.events.api.services
 
 import uk.vitalcode.events.api.models.db.TokenEntityTable
-import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
+import uk.vitalcode.events.api.models.{AuthenticationException, TokenEntity, UserEntity}
 import uk.vitalcode.events.api.utils.DatabaseService
 
 import scala.concurrent.duration.Duration
@@ -13,6 +13,10 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
   import databaseService.driver.api._
 
   // TODO password hash
+
+//  def login2(userName: String, password: String) = Await.result(authService.login(userName, password), Duration.Inf) getOrElse (
+//    throw new AuthenticationException("UserName or password is incorrect"))
+
   def login(username: String, password: String): Future[Option[TokenEntity]] = {
     db.run(users.filter(u => u.username === username).result)
       .flatMap { users => users.find(user => user.password == password) match {
@@ -20,7 +24,7 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
           case Some(token) => Future.successful(Some(token))
           case None => createToken(user).map(token => Some(token))
         }
-        case None => Future.successful(None)
+        case None => throw AuthenticationException("UserName or password is incorrect") //Future.successful(None)
       }
       }
   }
