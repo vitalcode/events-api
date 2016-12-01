@@ -11,15 +11,15 @@ case object Authorised extends FieldTag
 
 case class Permission(name: String) extends FieldTag
 
-object SecurityMiddleware extends Middleware[EventContext] with MiddlewareBeforeField[EventContext] {
+object SecurityMiddleware extends Middleware[GraphqlContext] with MiddlewareBeforeField[GraphqlContext] {
   type QueryVal = Unit
   type FieldVal = Unit
 
-  def beforeQuery(context: MiddlewareQueryContext[EventContext, _, _]) = ()
+  def beforeQuery(context: MiddlewareQueryContext[GraphqlContext, _, _]) = ()
 
-  def afterQuery(queryVal: QueryVal, context: MiddlewareQueryContext[EventContext, _, _]) = ()
+  def afterQuery(queryVal: QueryVal, context: MiddlewareQueryContext[GraphqlContext, _, _]) = ()
 
-  def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[EventContext, _, _], ctx: Context[EventContext, _]) = {
+  def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[GraphqlContext, _, _], ctx: Context[GraphqlContext, _]) = {
     val permissions = ctx.field.tags.collect { case Permission(p) ⇒ p }
     val requireAuth = ctx.field.tags.contains(Authorised)
     val token = ctx.ctx.token
@@ -34,11 +34,11 @@ object SecurityMiddleware extends Middleware[EventContext] with MiddlewareBefore
     continue
   }
 
-  private def authenticateUser(ctx: EventContext) = {
+  private def authenticateUser(ctx: GraphqlContext) = {
     ctx.token.flatMap(t => Await.result(ctx.authService.authorise(t.token), Duration.Inf)).fold(throw AuthenticationException("Invalid token (SecurityMiddleware)"))(identity)
   }
 
-  def ensurePermissions(permissions: List[String], ctx: EventContext): Unit =
+  def ensurePermissions(permissions: List[String], ctx: GraphqlContext): Unit =
     ctx.token.flatMap(t => Await.result(ctx.authService.authorise(t.token), Duration.Inf)).fold(throw AuthenticationException("Invalid token (ensurePermissions)")) {
       user ⇒
         if (!permissions.forall(user.permissions.contains))

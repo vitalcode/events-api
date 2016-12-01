@@ -10,14 +10,14 @@ import sangria.marshalling.ResultMarshaller
 import sangria.marshalling.sprayJson._
 import sangria.parser.QueryParser
 import spray.json.{JsObject, JsString, JsValue, _}
-import uk.vitalcode.events.api.http.{EventContext, SecurityMiddleware}
+import uk.vitalcode.events.api.http.{GraphqlContext, SecurityMiddleware}
 import uk.vitalcode.events.api.models.{AuthenticationException, AuthorisationException}
 import uk.vitalcode.events.api.utils.Config
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class EventsServiceRoute(val eventContext: EventContext)(implicit executionContext: ExecutionContext) extends Config {
+class EventsServiceRoute(val eventContext: GraphqlContext)(implicit executionContext: ExecutionContext) extends Config {
 
 
   def authenticator(credentials: Credentials): Option[String] =

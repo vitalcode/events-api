@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter
 import sangria.ast
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
-import uk.vitalcode.events.api.http.{Authorised, EventContext, Permission}
+import uk.vitalcode.events.api.http.{Authorised, GraphqlContext, Permission}
 import uk.vitalcode.events.api.models.{Event, Page, TokenEntity, UserEntity}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
@@ -107,7 +107,7 @@ object SchemaDefinition {
   val Start = Argument("start", IntType, description = "event list start")
   val Limit = Argument("limit", IntType, description = "event list limit")
 
-  val QueryType = ObjectType("Query", fields[EventContext, Unit](
+  val QueryType = ObjectType("Query", fields[GraphqlContext, Unit](
     Field("me", OptionType(User),
       tags = Authorised :: Nil,
       resolve = ctx => ctx.ctx.usersService.getUserById(ctx.ctx.token.get.userId.get)
@@ -135,7 +135,7 @@ object SchemaDefinition {
   val PasswordArg = Argument("password", StringType)
   val RoleArg = Argument("role", StringType)
 
-  val MutationType = ObjectType("Mutation", fields[EventContext, Unit](
+  val MutationType = ObjectType("Mutation", fields[GraphqlContext, Unit](
     Field("login", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       resolve = ctx => UpdateCtx(ctx.ctx.authService.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒

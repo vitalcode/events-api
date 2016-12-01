@@ -16,7 +16,7 @@ import org.scalatest._
 import sangria.ast.Document
 import sangria.renderer.QueryRenderer
 import spray.json.{JsObject, JsString, _}
-import uk.vitalcode.events.api.http.{EventContext, HttpService}
+import uk.vitalcode.events.api.http.{GraphqlContext, HttpService}
 import uk.vitalcode.events.api.models.UserPermission._
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}

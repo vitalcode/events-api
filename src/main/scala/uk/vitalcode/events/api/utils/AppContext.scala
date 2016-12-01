@@ -1,7 +1,7 @@
 package uk.vitalcode.events.api.utils
 
 import com.sksamuel.elastic4s.{ElasticClient, IndexType}
-import uk.vitalcode.events.api.http.{EventContext, HttpService}
+import uk.vitalcode.events.api.http.{GraphqlContext, HttpService}
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 
 import scala.concurrent.ExecutionContext
@@ -18,6 +18,6 @@ trait AppContext {
   lazy val usersService = new UsersService(databaseService)
   lazy val authService = new AuthService(databaseService, usersService)
   lazy val eventService = new EventService(cxElasticClient, cxIndexType)
-  lazy val eventContext = new EventContext(authService, usersService, eventService)
+  lazy val eventContext = new GraphqlContext(authService, usersService, eventService)
   lazy val httpService = new HttpService(usersService, authService, eventContext)
 }
