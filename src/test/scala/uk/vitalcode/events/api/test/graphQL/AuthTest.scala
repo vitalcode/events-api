@@ -6,6 +6,7 @@ import sangria.macros._
 import spray.json.{JsString, _}
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.test.utils.BaseTest
+import uk.vitalcode.events.api.utils.JwtUtils
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -18,19 +19,20 @@ class AuthTest extends BaseTest {
     "register" when {
       "admin user" should {
         "register new user and retrieve its token" in new Context {
-          val admin = adminUser(testUsers)
+          val subject = adminUser(testUsers)
           val newUser = createTestUser()
-          registerUser(route, newUser, userToken(admin)) {
-            status shouldEqual StatusCodes.OK
-            responseAs[JsValue] shouldBe tokenResponse(userToken(newUser).get.token)
+          registerUser(route, newUser, Some(subject)) {
+            val userFromToken = tokenResponseToUser(responseAs[JsValue])
+            status shouldEqual StatusCodes.OK // TODO Check if the user has beed added to the database
+            userFromToken.username shouldBe newUser.username // TODO refactor
           }
         }
       }
       "not admin user" should {
         "fail to register new user" in new Context {
-          val user = basicUser(testUsers)
+          val subject = basicUser(testUsers)
           val newUser = createTestUser()
-          registerUser(route, newUser, userToken(user)) {
+          registerUser(route, newUser, Some(subject)) {
             status shouldEqual StatusCodes.OK
             responseAs[JsValue] shouldBe {
               """
@@ -56,36 +58,18 @@ class AuthTest extends BaseTest {
       "create and return new token for the user with correct login credentials" in new Context {
         val user = basicUser(testUsers)
         login(route, user) {
-          val token = Await.result(authService.tokenByUser(user), Duration.Inf)
           status shouldEqual StatusCodes.OK
-          responseAs[JsValue] shouldBe tokenResponse(token.get.token)
-        }
-      }
-    }
-    "logout" should {
-      "remove user token from the database" in new Context {
-        val user = basicUser(testUsers)
-        val token = Await.result(authService.login(user), Duration.Inf)
-        logout(route, token) {
-          val tokenAfterLogout = Await.result(authService.tokenByUser(user), Duration.Inf)
-          tokenAfterLogout shouldBe None
-          status shouldEqual StatusCodes.OK
-          responseAs[JsValue] shouldBe
-            """
-            {
-              "data":{
-                "logout":"ok"
-              }
-            }
-            """.parseJson
+          tokenResponseToUser(responseAs[JsValue]) shouldBe user
+
+
+          //JwtUtils.decode(responseAs[JsValue]) shouldBe tokenResponse(userToken(user))
         }
       }
     }
     "users" should {
       "return all registered users" in new Context {
-        val user = basicUser(testUsers)
-        val token = Await.result(authService.login(user), Duration.Inf)
-        users(route, token) {
+        val subject = basicUser(testUsers)
+        users(route, Some(subject)) {
           status shouldEqual StatusCodes.OK
           responseAs[JsValue] shouldBe
             JsObject("data" ->
@@ -99,17 +83,16 @@ class AuthTest extends BaseTest {
     }
     "me" should {
       "get user information for authorized user" in new Context {
-        val user = basicUser(testUsers)
-        val token = Await.result(authService.login(user), Duration.Inf)
-        me(route, token) {
+        val subject = basicUser(testUsers)
+        me(route, Some(subject)) {
           status shouldEqual StatusCodes.OK
           responseAs[JsValue] shouldBe
             s"""
           {
             "data": {
               "me": {
-                "id": ${user.id.get},
-                "username": "${user.username}"
+                "id": ${subject.id.get},
+                "username": "${subject.username}"
               }
             }
           }""".parseJson
@@ -138,7 +121,7 @@ class AuthTest extends BaseTest {
     }
   }
 
-  private def registerUser(route: server.Route, user: UserEntity, token: Option[TokenEntity] = None)(action: => Unit) = {
+  private def registerUser(route: server.Route, user: UserEntity, subject: Option[UserEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
         mutation register ($$user: String ! $$password: String !)
@@ -146,12 +129,12 @@ class AuthTest extends BaseTest {
           token: register (user: $$user password: $$password)
         }
         """
-    graphCheck(route, query, token,
+    graphCheck(route, query, subject,
       vars = JsObject("user" → JsString(user.username), "password" → JsString(user.password))
     )(action)
   }
 
-  private def me(route: server.Route, token: Option[TokenEntity] = None)(action: => Unit) = {
+  private def me(route: server.Route, subject: Option[UserEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
       {
@@ -160,7 +143,7 @@ class AuthTest extends BaseTest {
           username
         }
       }"""
-    graphCheck(route, query, token)(action)
+    graphCheck(route, query, subject)(action)
   }
 
   private def login(route: server.Route, user: UserEntity)(action: => Unit) = {
@@ -176,18 +159,7 @@ class AuthTest extends BaseTest {
     )(action)
   }
 
-  private def logout(route: server.Route, token: Option[TokenEntity] = None)(action: => Unit) = {
-    val query =
-      graphql"""
-        mutation
-        {
-          logout
-        }
-        """
-    graphCheck(route, query, token)(action)
-  }
-
-  private def users(route: server.Route, token: Option[TokenEntity] = None)(action: => Unit) = {
+  private def users(route: server.Route, subject: Option[UserEntity] = None)(action: => Unit) = {
     val query =
       graphql"""
       {
@@ -196,15 +168,11 @@ class AuthTest extends BaseTest {
           username
         }
       }"""
-    graphCheck(route, query, token)(action)
+    graphCheck(route, query, subject)(action)
   }
 
-  private def tokenResponse(token: String) = {
-    s"""
-    {
-      "data": {
-        "token": "${token}"
-      }
-    }""".parseJson
+  private def tokenResponseToUser(response: JsValue) = {
+    val token = response.asInstanceOf[JsObject].fields("data").asInstanceOf[JsObject].fields("token").asInstanceOf[JsString].value
+    JwtUtils.decode(token).get
   }
 }

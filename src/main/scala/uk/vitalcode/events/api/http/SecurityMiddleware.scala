@@ -22,7 +22,6 @@ object SecurityMiddleware extends Middleware[GraphqlContext] with MiddlewareBefo
   def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[GraphqlContext, _, _], ctx: Context[GraphqlContext, _]) = {
     val permissions = ctx.field.tags.collect { case Permission(p) ⇒ p }
     val requireAuth = ctx.field.tags.contains(Authorised)
-    val token = ctx.ctx.token
     val securityCtx = ctx.ctx
 
     if (requireAuth)
@@ -35,11 +34,11 @@ object SecurityMiddleware extends Middleware[GraphqlContext] with MiddlewareBefo
   }
 
   private def authenticateUser(ctx: GraphqlContext) = {
-    ctx.token.flatMap(t => Await.result(ctx.authService.authorise(t.token), Duration.Inf)).fold(throw AuthenticationException("Invalid token (SecurityMiddleware)"))(identity)
+    ctx.subject.fold(throw AuthenticationException("Invalid token (SecurityMiddleware)"))(identity)
   }
 
   def ensurePermissions(permissions: List[String], ctx: GraphqlContext): Unit =
-    ctx.token.flatMap(t => Await.result(ctx.authService.authorise(t.token), Duration.Inf)).fold(throw AuthenticationException("Invalid token (ensurePermissions)")) {
+    ctx.subject.fold(throw AuthenticationException("Invalid token (ensurePermissions)")) {
       user ⇒
         if (!permissions.forall(user.permissions.contains))
           throw AuthorisationException("You do not have permission to perform this operation")

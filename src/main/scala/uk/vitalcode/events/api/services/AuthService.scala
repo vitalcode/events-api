@@ -1,11 +1,10 @@
 package uk.vitalcode.events.api.services
 
 import uk.vitalcode.events.api.models.db.TokenEntityTable
-import uk.vitalcode.events.api.models.{AuthenticationException, TokenEntity, UserEntity}
-import uk.vitalcode.events.api.utils.DatabaseService
+import uk.vitalcode.events.api.models.{AuthenticationException, UserEntity}
+import uk.vitalcode.events.api.utils.{DatabaseService, JwtUtils}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 class AuthService(val databaseService: DatabaseService, usersService: UsersService)(implicit executionContext: ExecutionContext) extends TokenEntityTable {
 
@@ -13,27 +12,23 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
   import databaseService.driver.api._
 
   // TODO password hash
-  def login(username: String, password: String): Future[Option[TokenEntity]] = {
-    db.run(users.filter(u => u.username === username).result)
-      .flatMap { users => users.find(user => user.password == password) match {
-        case Some(user) => db.run(tokens.filter(_.userId === user.id).result.headOption).flatMap {
-          case Some(token) => Future.successful(Some(token))
-          case None => createToken(user).map(token => Some(token))
-        }
-        case None => throw AuthenticationException("UserName or password is incorrect") //Future.successful(None)
-      }
-      }
+  def login(username: String, password: String): Future[String] = {
+    val result: Future[Seq[UserEntity]] = db.run(users.filter(u => u.username === username && u.password === password).result)
+    result.map {
+      case Seq(user) => JwtUtils.encode(user)
+      case _ => throw AuthenticationException("UserName or password is incorrect")
+    }
   }
 
-  def login(user: UserEntity): Future[Option[TokenEntity]] = login(user.username, user.password)
+  def login(user: UserEntity): Future[String] = login(user.username, user.password)
 
-  def logout(token: TokenEntity) = db.run(tokens.filter(_.id === token.id).delete)
+  //def logout(token: TokenEntity) = db.run(tokens.filter(_.id === token.id).delete)
 
-  def signup(newUser: UserEntity): Future[TokenEntity] = {
-    usersService.createUser(newUser).flatMap(user => createToken(user))
+  def signup(newUser: UserEntity): Future[String] = {
+    usersService.createUser(newUser).map(user => createToken(user))
   }
 
-  def signup(login: String, pass: String): Future[TokenEntity] = {
+  def signup(login: String, pass: String): Future[String] = {
     val newUser = UserEntity(
       username = login,
       password = pass,
@@ -47,18 +42,11 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
     user <- users.filter(_.id === token.userId)
   } yield user).result.headOption)
 
-  def createToken(user: UserEntity): Future[TokenEntity] = {
-    val userTokenQuery = tokens.filter(_.userId === user.id)
-
-    val t: Seq[TokenEntity] = Await.result(db.run(userTokenQuery.result), Duration.Inf)
-
-    if (t.isEmpty) {
-      db.run(tokens returning tokens += TokenEntity(userId = user.id))
-    }
-    else Future(t.head)
+  def createToken(user: UserEntity): String = {
+    JwtUtils.encode(user)
   }
 
-  def getToken(token: String): Future[Option[TokenEntity]] = db.run(tokens.filter(_.token === token).result.headOption)
-
-  def tokenByUser(user: UserEntity): Future[Option[TokenEntity]] = db.run(tokens.filter(_.userId === user.id).result.headOption)
+//  def getToken(token: String): Future[Option[TokenEntity]] = db.run(tokens.filter(_.token === token).result.headOption)
+//
+//  def tokenByUser(user: UserEntity): Future[Option[TokenEntity]] = db.run(tokens.filter(_.userId === user.id).result.headOption)
 }

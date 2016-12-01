@@ -53,7 +53,7 @@ class EventsServiceRoute(val eventContext: GraphqlContext)(implicit executionCon
             case _ ⇒ JsObject.empty
           }
 
-          eventContext.getAndSetToken(Some(token)) // TODO
+          eventContext.getAndSetSubject(Some(token))
 
           QueryParser.parse(query) match {
 

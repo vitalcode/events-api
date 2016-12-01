@@ -23,8 +23,8 @@ object JwtUtils {
     Jwt.encode(claim, secret, algorithm)
   }
 
-  def decode(token: String): Try[UserEntity] = {
-    Jwt.decodeRaw(token, secret, Seq(algorithm)).map(_.parseJson.convertTo[UserEntity])
+  def decode(token: String): Option[UserEntity] = {
+    Jwt.decodeRaw(token, secret, Seq(algorithm)).map(_.parseJson.convertTo[UserEntity]).toOption
   }
 
   def isValid(token: String): Boolean = {

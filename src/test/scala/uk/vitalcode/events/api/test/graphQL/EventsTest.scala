@@ -6,7 +6,7 @@ import com.sksamuel.elastic4s.ElasticDsl.{index, _}
 import org.scalatest.{Matchers, WordSpec}
 import sangria.macros._
 import spray.json.{JsNumber, _}
-import uk.vitalcode.events.api.models.TokenEntity
+import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
 import uk.vitalcode.events.api.test.utils.BaseTest
 
 class EventsTest extends WordSpec with Matchers with BaseTest {
@@ -74,8 +74,8 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
     "authenticated user" when {
       "requesting events with both start and limit parameters" should {
         "return all events" in new Context {
-          val user = basicUser(testUsers)
-          events(route, 0, 10, userToken(user)) {
+          val subject = basicUser(testUsers)
+          events(route, 0, 10, subject) {
             status shouldEqual StatusCodes.OK
             responseAs[JsValue] shouldBe
               """
@@ -90,8 +90,8 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           }
         }
         "return requested page only events" in new Context {
-          val user = basicUser(testUsers)
-          events(route, 1, 2, userToken(user)) {
+          val subject = basicUser(testUsers)
+          events(route, 1, 2, subject) {
             status shouldEqual StatusCodes.OK
             responseAs[JsValue] shouldBe
               """
@@ -108,7 +108,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
       }
       "requesting events with either start or limit parameter only" should {
         "fail if only start parameter is provided" in new Context {
-          val user = basicUser(testUsers)
+          val subject = basicUser(testUsers)
           val query =
             graphql"""
             {
@@ -119,12 +119,12 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
                 }
               }
             }"""
-          graphCheck(route, query, userToken(user))(
+          graphCheck(route, query, Some(subject))(
             status shouldEqual StatusCodes.BadRequest
           )
         }
         "fail if only limit parameter is provided" in new Context {
-          val user = basicUser(testUsers)
+          val subject = basicUser(testUsers)
           val query =
             graphql"""
             {
@@ -135,7 +135,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
                 }
               }
             }"""
-          graphCheck(route, query, userToken(user))(
+          graphCheck(route, query, Some(subject))(
             status shouldEqual StatusCodes.BadRequest
           )
         }
@@ -152,8 +152,8 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
               }
             }"""
         "return events scheduled after specified date" in new Context {
-          val user = basicUser(testUsers)
-          graphCheck(route, query, userToken(user),
+          val subject = basicUser(testUsers)
+          graphCheck(route, query, Some(subject),
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "date" -> JsString("2016-01-08T11:00:00"))
           ) {
             status shouldEqual StatusCodes.OK
@@ -170,8 +170,8 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           }
         }
         "return events containing specified clue" in new Context {
-          val user = basicUser(testUsers)
-          graphCheck(route, query, userToken(user),
+          val subject = basicUser(testUsers)
+          graphCheck(route, query, Some(subject),
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "clue" -> JsString("event2"))
           ) {
             status shouldEqual StatusCodes.OK
@@ -188,8 +188,8 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           }
         }
         "return events for specified category" in new Context {
-          val user = basicUser(testUsers)
-          graphCheck(route, query, userToken(user),
+          val subject = basicUser(testUsers)
+          graphCheck(route, query, Some(subject),
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "category" -> JsString("FAMILY"))
           ) {
             status shouldEqual StatusCodes.OK
@@ -219,7 +219,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
     }
   }
 
-  private def events(route: server.Route, start: Int, limit: Int, token: Option[TokenEntity] = None)(action: => Unit) = {
+  private def events(route: server.Route, start: Int, limit: Int, subject: Option[UserEntity] = None)(action: => Unit): Unit = {
     val query =
       graphql"""
         query FetchEvents($$start: Int!, $$limit: Int!) {
@@ -231,7 +231,10 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
           }
         }
         """
-    graphCheck(route, query, token, vars = JsObject("start" → JsNumber(start), "limit" → JsNumber(limit)))(action)
+    graphCheck(route, query, subject, vars = JsObject("start" → JsNumber(start), "limit" → JsNumber(limit)))(action)
   }
+
+  private def events(route: server.Route, start: Int, limit: Int, subject: UserEntity)(action: => Unit): Unit =
+    events(route, start, limit, Some(subject))(action)
 }
 

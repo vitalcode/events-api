@@ -54,8 +54,8 @@ class EventTest extends WordSpec with Matchers with BaseTest {
   "event" when {
     "authenticated user" should {
       "correctly return event when requesting using event corresponding event ID" in new Context {
-        val user = basicUser(testUsers)
-        graphCheck(route, query, userToken(user), JsObject("eventId" → JsString("1"))) {
+        val subject = basicUser(testUsers)
+        graphCheck(route, query, Some(subject), JsObject("eventId" → JsString("1"))) {
           status shouldEqual StatusCodes.OK
           responseAs[JsValue] shouldBe
             """
@@ -71,7 +71,7 @@ class EventTest extends WordSpec with Matchers with BaseTest {
         }
       }
       "fail if event ID is not provided" in new Context {
-        val user = basicUser(testUsers)
+        val subject = basicUser(testUsers)
         val queryNoEventId =
           graphql"""
           {
@@ -81,13 +81,13 @@ class EventTest extends WordSpec with Matchers with BaseTest {
               from
             }
           }"""
-        graphCheck(route, queryNoEventId, userToken(user))(
+        graphCheck(route, queryNoEventId, Some(subject))(
           status shouldEqual StatusCodes.BadRequest
         )
       }
       "ignore requested fields if they are not defined in elastic index" in new Context {
-        val user = basicUser(testUsers)
-        graphCheck(route, query, userToken(user), JsObject("eventId" → JsString("2"))) {
+        val subject = basicUser(testUsers)
+        graphCheck(route, query, Some(subject), JsObject("eventId" → JsString("2"))) {
           status shouldEqual StatusCodes.OK
           responseAs[JsValue] shouldBe
             """

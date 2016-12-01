@@ -21,7 +21,7 @@ import uk.vitalcode.events.api.models.UserPermission._
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
-import uk.vitalcode.events.api.utils.{AppContext, DatabaseService}
+import uk.vitalcode.events.api.utils.{AppContext, DatabaseService, JwtUtils}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -65,11 +65,10 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
   }
 
   protected def dbTokensForTestUsers(usersList: Seq[UserEntity]) = {
-    val savedTokens = usersList.map(authService.createToken)
-    Await.result(Future.sequence(savedTokens), 10.seconds)
+    usersList.map(JwtUtils.encode)
   }
 
-  protected def graphCheck(route: server.Route, document: Document, token: Option[TokenEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
+  protected def graphCheck(route: server.Route, document: Document, subject: Option[UserEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
     val query = QueryRenderer.render(document, QueryRenderer.Compact)
     val requestBody = JsObject(
       "query" -> JsString(query),
@@ -77,7 +76,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
     ).compactPrint
     val requestEntity = HttpEntity(MediaTypes.`application/json`, requestBody)
     val request = Post("/graphql", requestEntity)
-    token.map(addAuthorizationHeader(request, _)).getOrElse(request) ~> route ~> check(action)
+    subject.map(addAuthorizationHeader(request, _)).getOrElse(request) ~> route ~> check(action)
   }
 
   protected def graphCheck(route: server.Route, document: Document, vars: JsObject)(action: => Unit): Unit = {
@@ -88,8 +87,8 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
     graphCheck(route, document, None)(action)
   }
 
-  private def addAuthorizationHeader(request: HttpRequest, token: TokenEntity): HttpRequest = {
-    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(token.token)))
+  private def addAuthorizationHeader(request: HttpRequest, subject: UserEntity): HttpRequest = {
+    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(JwtUtils.encode(subject))))
   }
 
   protected def adminUser(users: Seq[UserEntity]) = {
@@ -101,7 +100,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
   }
 
   protected def userToken(user: UserEntity) = {
-    Await.result(authService.login(user.username, user.password), Duration.Inf)
+    JwtUtils.encode(user)
   }
 
   trait Context {

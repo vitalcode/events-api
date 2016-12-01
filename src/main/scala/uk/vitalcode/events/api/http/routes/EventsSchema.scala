@@ -110,7 +110,7 @@ object SchemaDefinition {
   val QueryType = ObjectType("Query", fields[GraphqlContext, Unit](
     Field("me", OptionType(User),
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.usersService.getUserById(ctx.ctx.token.get.userId.get)
+      resolve = ctx => ctx.ctx.subject
     ),
     Field("users", ListType(User),
       tags = Authorised :: Nil,
@@ -139,27 +139,18 @@ object SchemaDefinition {
     Field("login", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       resolve = ctx => UpdateCtx(ctx.ctx.authService.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
-        ctx.ctx.setToken(token)
+        ctx.ctx.getAndSetSubject(Some(token))
         ctx.ctx // todo copy no mutation
         //        ctx.ctx.copy(token = Some(token.token))
-      }.map(_.map(_.token))
+      }//.map(_.map(_.))
     ),
-    Field("logout", StringType,
-      resolve = ctx ⇒ UpdateCtx {
-        ctx.ctx.authService.logout(ctx.ctx.token.get)
-        "ok"
-      } { e ⇒
-        ctx.ctx.setToken(None)
-        ctx.ctx // todo copy no mutation
-        //        ctx.ctx.copy(token = Some(token.token))
-      }),
     Field("register", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       tags = Permission("admin") :: Nil,
       resolve = ctx ⇒ UpdateCtx(ctx.ctx.authService.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
-        ctx.ctx.setToken(Some(token))
+        ctx.ctx.getAndSetSubject(Some(token))
         ctx.ctx
-      }.map(_.token)
+      }//.map(_.token)
     ) //,
     //      Field("addRole", OptionType(ListType(StringType)),
     //      arguments = RoleArg :: Nil,
