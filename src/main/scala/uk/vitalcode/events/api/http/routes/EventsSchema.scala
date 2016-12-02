@@ -8,6 +8,7 @@ import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 import uk.vitalcode.events.api.http.{Authorised, GraphqlContext, Permission}
 import uk.vitalcode.events.api.models.{Event, Page, TokenEntity, UserEntity}
+import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
 
@@ -20,7 +21,9 @@ import scala.util.{Failure, Success, Try}
 /**
   * Defines a GraphQL schema for the current project
   */
-object SchemaDefinition {
+class EventSchemaFactory(usersService: UsersService,
+                         authService: AuthService,
+                         eventService: EventService) {
 
   case object DateCoercionViolation extends ValueCoercionViolation("Date value expected")
 
@@ -114,16 +117,16 @@ object SchemaDefinition {
     ),
     Field("users", ListType(User),
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.usersService.getUsers
+      resolve = ctx => usersService.getUsers
     ),
     Field("event", Event,
       arguments = ID :: Nil,
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.eventService.getEvent(ctx arg ID).get),
+      resolve = ctx => eventService.getEvent(ctx arg ID).get),
     Field("events", Page,
       arguments = Date :: Clue :: CategoryArg :: Start :: Limit :: Nil,
       tags = Authorised :: Nil,
-      resolve = ctx => ctx.ctx.eventService.getEvents(
+      resolve = ctx => eventService.getEvents(
         date = ctx.arg(Date),
         clue = ctx.arg(Clue),
         category = ctx.arg(CategoryArg),
@@ -138,8 +141,8 @@ object SchemaDefinition {
   val MutationType = ObjectType("Mutation", fields[GraphqlContext, Unit](
     Field("login", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
-      resolve = ctx => UpdateCtx(ctx.ctx.authService.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
-        ctx.ctx.getAndSetSubject(Some(token))
+      resolve = ctx => UpdateCtx(authService.login(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
+        ctx.ctx.setSubject(token)
         ctx.ctx // todo copy no mutation
         //        ctx.ctx.copy(token = Some(token.token))
       }//.map(_.map(_.))
@@ -147,9 +150,11 @@ object SchemaDefinition {
     Field("register", OptionType(StringType),
       arguments = UserNameArg :: PasswordArg :: Nil,
       tags = Permission("admin") :: Nil,
-      resolve = ctx ⇒ UpdateCtx(ctx.ctx.authService.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
-        ctx.ctx.getAndSetSubject(Some(token))
-        ctx.ctx
+      resolve = ctx ⇒ {
+        UpdateCtx(authService.signup(ctx.arg(UserNameArg), ctx.arg(PasswordArg))) { token ⇒
+          ctx.ctx.setSubject(token)
+          ctx.ctx
+        }
       }//.map(_.token)
     ) //,
     //      Field("addRole", OptionType(ListType(StringType)),

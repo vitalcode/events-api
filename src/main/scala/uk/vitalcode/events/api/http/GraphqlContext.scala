@@ -1,15 +1,12 @@
 package uk.vitalcode.events.api.http
 
 import uk.vitalcode.events.api.models.UserEntity
-import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.api.utils.JwtUtils
 
 
-class GraphqlContext(val authService: AuthService, val usersService: UsersService, val eventService: EventService) {
+class GraphqlContext(var subject: Option[UserEntity] = None) {
 
-  var subject: Option[UserEntity] = None
+  def setSubject(user: Option[UserEntity]): Unit = subject = user
 
-  def setSubject(t: Option[UserEntity]) = this.subject = t
-
-  def getAndSetSubject(t: Option[String]) = setSubject(t.flatMap(JwtUtils.decode))
+  def setSubject(token: String): Unit = setSubject(JwtUtils.decode(token))
 }

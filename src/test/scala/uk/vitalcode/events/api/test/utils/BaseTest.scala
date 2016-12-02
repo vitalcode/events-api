@@ -16,12 +16,13 @@ import org.scalatest._
 import sangria.ast.Document
 import sangria.renderer.QueryRenderer
 import spray.json.{JsObject, JsString, _}
+import uk.vitalcode.events.api.AppContext
 import uk.vitalcode.events.api.http.{GraphqlContext, HttpService}
 import uk.vitalcode.events.api.models.UserPermission._
 import uk.vitalcode.events.api.models.{TokenEntity, UserEntity, UserPermission}
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.api.test.utils.InMemoryPostgresStorage._
-import uk.vitalcode.events.api.utils.{AppContext, DatabaseService, JwtUtils}
+import uk.vitalcode.events.api.utils.{DatabaseService, JwtUtils}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

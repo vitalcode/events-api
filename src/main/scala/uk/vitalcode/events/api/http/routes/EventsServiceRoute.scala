@@ -9,6 +9,7 @@ import sangria.execution._
 import sangria.marshalling.ResultMarshaller
 import sangria.marshalling.sprayJson._
 import sangria.parser.QueryParser
+import sangria.schema.Schema
 import spray.json.{JsObject, JsString, JsValue, _}
 import uk.vitalcode.events.api.http.{GraphqlContext, SecurityMiddleware}
 import uk.vitalcode.events.api.models.{AuthenticationException, AuthorisationException}
@@ -17,7 +18,9 @@ import uk.vitalcode.events.api.utils.Config
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class EventsServiceRoute(val eventContext: GraphqlContext)(implicit executionContext: ExecutionContext) extends Config {
+class EventsServiceRoute(eventContext: GraphqlContext,
+                         eventSchema: Schema[GraphqlContext, Unit])
+                        (implicit executionContext: ExecutionContext) extends Config {
 
 
   def authenticator(credentials: Credentials): Option[String] =
@@ -53,13 +56,13 @@ class EventsServiceRoute(val eventContext: GraphqlContext)(implicit executionCon
             case _ ⇒ JsObject.empty
           }
 
-          eventContext.getAndSetSubject(Some(token))
+          eventContext.setSubject(token)
 
           QueryParser.parse(query) match {
 
             // query parsed successfully, time to execute it!
             case Success(queryAst) ⇒
-              complete(Executor.execute(SchemaDefinition.EventSchema, queryAst,
+              complete(Executor.execute(eventSchema, queryAst,
                 userContext = eventContext,
                 operationName = operation,
                 variables = vars,

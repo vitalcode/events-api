@@ -12,7 +12,6 @@ libraryDependencies ++= {
   val eventsModelV = "0.0.1"
   val jwtV = "0.9.2"
   val sprayJsonV = "1.3.2"
-  val playV = "2.5.10"
 
   Seq(
     "com.typesafe.akka" %% "akka-http-core" % akkaHttpV,
@@ -32,12 +31,8 @@ libraryDependencies ++= {
     "io.circe" %% "circe-generic" % circeV,
     "io.circe" %% "circe-parser" % circeV,
     "io.spray" %% "spray-json" % sprayJsonV,
-    "com.typesafe.play" %% "play-json" % playV,
 
     "com.pauldijou" %% "jwt-core" % jwtV,
-    "com.pauldijou" %% "jwt-play-json" % jwtV,
-    "com.pauldijou" %% "jwt-play" % jwtV,
-    "com.pauldijou" %% "jwt-circe" % jwtV,
 
     "org.sangria-graphql" %% "sangria" % "0.7.3",
     "org.sangria-graphql" %% "sangria-spray-json" % "0.3.1",

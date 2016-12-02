@@ -7,7 +7,7 @@ import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri, IndexType}
 import org.elasticsearch.common.settings.ImmutableSettings
-import uk.vitalcode.events.api.utils.{AppContext, Config, FlywayService}
+import uk.vitalcode.events.api.utils.{Config, FlywayService}
 
 object Main extends App with Config {
   implicit val actorSystem = ActorSystem()
