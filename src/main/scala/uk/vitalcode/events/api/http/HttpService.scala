@@ -10,11 +10,10 @@ import scala.concurrent.ExecutionContext
 
 class HttpService(usersService: UsersService,
                   authService: AuthService,
-                  eventContext: GraphqlContext,
                   eventSchema: Schema[GraphqlContext, Unit])(implicit executionContext: ExecutionContext) extends CorsSupport {
 
   val usersRouter = new UsersServiceRoute(authService, usersService)
-  val graphQLRoute = new EventsServiceRoute(eventContext, eventSchema)
+  val graphQLRoute = new EventsServiceRoute(eventSchema)
   val authRouter = new AuthServiceRoute(authService)
 
   val routes =

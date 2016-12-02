@@ -21,7 +21,6 @@ trait AppContext {
   lazy val usersService = new UsersService(databaseService)
   lazy val authService = new AuthService(databaseService, usersService)
   lazy val eventService = new EventService(cxElasticClient, cxIndexType)
-  lazy val eventContext = new GraphqlContext()
   lazy val eventSchema = new EventSchemaFactory(usersService, authService, eventService).EventSchema
-  lazy val httpService = new HttpService(usersService, authService, eventContext, eventSchema)
+  lazy val httpService = new HttpService(usersService, authService, eventSchema)
 }

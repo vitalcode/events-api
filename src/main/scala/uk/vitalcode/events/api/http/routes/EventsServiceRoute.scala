@@ -18,8 +18,7 @@ import uk.vitalcode.events.api.utils.Config
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class EventsServiceRoute(eventContext: GraphqlContext,
-                         eventSchema: Schema[GraphqlContext, Unit])
+class EventsServiceRoute(eventSchema: Schema[GraphqlContext, Unit])
                         (implicit executionContext: ExecutionContext) extends Config {
 
 
@@ -56,6 +55,7 @@ class EventsServiceRoute(eventContext: GraphqlContext,
             case _ ⇒ JsObject.empty
           }
 
+          val eventContext = new GraphqlContext()
           eventContext.setSubject(token)
 
           QueryParser.parse(query) match {
