@@ -2,7 +2,7 @@ package uk.vitalcode.events.api
 
 import com.sksamuel.elastic4s.{ElasticClient, IndexType}
 import sangria.schema.Schema
-import uk.vitalcode.events.api.http.routes.EventSchemaFactory
+import uk.vitalcode.events.api.http.schema.EventSchemaFactory
 import uk.vitalcode.events.api.http.{GraphqlContext, HttpService}
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.api.utils.DatabaseService

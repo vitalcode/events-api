@@ -1,4 +1,4 @@
-package uk.vitalcode.events.api.http.routes
+package uk.vitalcode.events.api.http.schema
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -7,14 +7,11 @@ import sangria.ast
 import sangria.schema._
 import sangria.validation.ValueCoercionViolation
 import uk.vitalcode.events.api.http.{Authorised, GraphqlContext, Permission}
-import uk.vitalcode.events.api.models.{Event, Page, TokenEntity, UserEntity}
+import uk.vitalcode.events.api.models.{Event, Page, UserEntity}
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category.Category
 
-import scala.concurrent.{Await, ExecutionContext}
-import ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
 
