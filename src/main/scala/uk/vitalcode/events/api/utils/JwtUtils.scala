@@ -1,34 +1,30 @@
 package uk.vitalcode.events.api.utils
 
-import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim, JwtHeader}
+import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
+import spray.json.DefaultJsonProtocol._
 import spray.json._
-import DefaultJsonProtocol._
 import uk.vitalcode.events.api.models.UserEntity
 
-import scala.util.Try
+object JwtUtils extends Config {
 
-object JwtUtils {
-
-  val expiration = 2 * 60
   val algorithm = JwtAlgorithm.HS256
-  val secret = "lisenok"
 
   implicit val userEntityFormat = jsonFormat4(UserEntity.apply)
 
-  def encode(user: UserEntity): String = {
-    val claim = JwtClaim(user.toJson.compactPrint)
+  def createToken(subject: UserEntity): String = {
+    val claim = JwtClaim(subject.toJson.compactPrint)
       .issuedNow
-      .expiresIn(expiration)
+      .expiresIn(jwtExpiration)
 
-    Jwt.encode(claim, secret, algorithm)
+    Jwt.encode(claim, jwtSecret, algorithm)
   }
 
-  def decode(token: String): Option[UserEntity] = {
-    Jwt.decodeRaw(token, secret, Seq(algorithm)).map(_.parseJson.convertTo[UserEntity]).toOption
+  def decodeSubject(token: String): Option[UserEntity] = {
+    Jwt.decodeRaw(token, jwtSecret, Seq(algorithm)).map(_.parseJson.convertTo[UserEntity]).toOption
   }
 
-  def isValid(token: String): Boolean = {
-    Jwt.isValid(token, secret, Seq(JwtAlgorithm.HS256))
+  def isTokenValid(token: String): Boolean = {
+    Jwt.isValid(token, jwtSecret, Seq(JwtAlgorithm.HS256))
   }
 }
 

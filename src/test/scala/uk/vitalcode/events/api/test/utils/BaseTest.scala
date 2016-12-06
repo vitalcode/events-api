@@ -66,7 +66,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
   }
 
   protected def dbTokensForTestUsers(usersList: Seq[UserEntity]) = {
-    usersList.map(JwtUtils.encode)
+    usersList.map(JwtUtils.createToken)
   }
 
   protected def graphCheck(route: server.Route, document: Document, subject: Option[UserEntity], vars: JsObject = JsObject.empty)(action: => Unit): Unit = {
@@ -89,7 +89,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
   }
 
   private def addAuthorizationHeader(request: HttpRequest, subject: UserEntity): HttpRequest = {
-    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(JwtUtils.encode(subject))))
+    request.addHeader(Authorization(HttpCredentials.createOAuth2BearerToken(JwtUtils.createToken(subject))))
   }
 
   protected def adminUser(users: Seq[UserEntity]) = {
@@ -101,7 +101,7 @@ trait BaseTest extends WordSpec with Matchers with ScalatestRouteTest with Spray
   }
 
   protected def userToken(user: UserEntity) = {
-    JwtUtils.encode(user)
+    JwtUtils.createToken(user)
   }
 
   trait Context {

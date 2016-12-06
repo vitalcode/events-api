@@ -5,5 +5,5 @@ import uk.vitalcode.events.api.utils.JwtUtils
 
 
 case class AuthContext(subject: Option[UserEntity] = None) {
-  def withToken(token: String): AuthContext = this.copy(subject = JwtUtils.decode(token))
+  def withToken(token: String): AuthContext = this.copy(subject = JwtUtils.decodeSubject(token))
 }

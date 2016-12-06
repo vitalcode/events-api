@@ -15,7 +15,7 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
   def login(username: String, password: String): Future[String] = {
     val result: Future[Seq[UserEntity]] = db.run(users.filter(u => u.username === username && u.password === password).result)
     result.map {
-      case Seq(user) => JwtUtils.encode(user)
+      case Seq(user) => JwtUtils.createToken(user)
       case _ => throw AuthenticationException("UserName or password is incorrect")
     }
   }
@@ -43,7 +43,7 @@ class AuthService(val databaseService: DatabaseService, usersService: UsersServi
   } yield user).result.headOption)
 
   def createToken(user: UserEntity): String = {
-    JwtUtils.encode(user)
+    JwtUtils.createToken(user)
   }
 
 //  def getToken(token: String): Future[Option[TokenEntity]] = db.run(tokens.filter(_.token === token).result.headOption)

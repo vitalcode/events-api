@@ -4,16 +4,13 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server
 import sangria.macros._
 import spray.json.{JsString, _}
-import uk.vitalcode.events.api.models.{TokenEntity, UserEntity}
+import uk.vitalcode.events.api.models.UserEntity
 import uk.vitalcode.events.api.test.utils.BaseTest
 import uk.vitalcode.events.api.utils.JwtUtils
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-
 class AuthTest extends BaseTest {
 
-  // Test for user stories, e.g. user register -> login -> me (multiple requests)
+  // TODO Test for user stories, e.g. user register -> login -> me (multiple requests)
 
   "authentication" when {
     "register" when {
@@ -170,6 +167,6 @@ class AuthTest extends BaseTest {
 
   private def tokenResponseToUser(response: JsValue) = {
     val token = response.asInstanceOf[JsObject].fields("data").asInstanceOf[JsObject].fields("token").asInstanceOf[JsString].value
-    JwtUtils.decode(token).get
+    JwtUtils.decodeSubject(token).get
   }
 }
