@@ -11,34 +11,32 @@ case object Authorised extends FieldTag
 
 case class Permission(name: String) extends FieldTag
 
-object SecurityMiddleware extends Middleware[GraphqlContext] with MiddlewareBeforeField[GraphqlContext] {
+object SecurityMiddleware extends Middleware[AuthContext] with MiddlewareBeforeField[AuthContext] {
   type QueryVal = Unit
   type FieldVal = Unit
 
-  def beforeQuery(context: MiddlewareQueryContext[GraphqlContext, _, _]) = ()
+  def beforeQuery(context: MiddlewareQueryContext[AuthContext, _, _]) = ()
 
-  def afterQuery(queryVal: QueryVal, context: MiddlewareQueryContext[GraphqlContext, _, _]) = ()
+  def afterQuery(queryVal: QueryVal, context: MiddlewareQueryContext[AuthContext, _, _]) = ()
 
-  def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[GraphqlContext, _, _], ctx: Context[GraphqlContext, _]) = {
+  def beforeField(queryVal: QueryVal, mctx: MiddlewareQueryContext[AuthContext, _, _], ctx: Context[AuthContext, _]) = {
     val permissions = ctx.field.tags.collect { case Permission(p) ⇒ p }
     val requireAuth = ctx.field.tags.contains(Authorised)
     val securityCtx = ctx.ctx
 
-    if (requireAuth)
-      authenticateUser(securityCtx)
+    if (requireAuth) authenticateUser(securityCtx)
 
-    if (permissions.nonEmpty)
-      ensurePermissions(permissions, securityCtx)
+    if (permissions.nonEmpty) ensurePermissions(permissions, securityCtx)
 
     continue
   }
 
-  private def authenticateUser(ctx: GraphqlContext) = {
-    ctx.subject.fold(throw AuthenticationException("Invalid token (SecurityMiddleware)"))(identity)
+  private def authenticateUser(ctx: AuthContext) = {
+    ctx.subject.fold(throw AuthenticationException("Invalid token"))(identity)
   }
 
-  def ensurePermissions(permissions: List[String], ctx: GraphqlContext): Unit =
-    ctx.subject.fold(throw AuthenticationException("Invalid token (ensurePermissions)")) {
+  private def ensurePermissions(permissions: List[String], ctx: AuthContext): Unit =
+    ctx.subject.fold(throw AuthenticationException("Invalid token")) {
       user ⇒
         if (!permissions.forall(user.permissions.contains))
           throw AuthorisationException("You do not have permission to perform this operation")

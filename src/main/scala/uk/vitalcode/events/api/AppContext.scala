@@ -1,9 +1,7 @@
 package uk.vitalcode.events.api
 
 import com.sksamuel.elastic4s.{ElasticClient, IndexType}
-import sangria.schema.Schema
-import uk.vitalcode.events.api.http.schema.EventSchemaFactory
-import uk.vitalcode.events.api.http.{GraphqlContext, HttpService}
+import uk.vitalcode.events.api.http.HttpService
 import uk.vitalcode.events.api.services.{AuthService, EventService, UsersService}
 import uk.vitalcode.events.api.utils.DatabaseService
 
@@ -21,6 +19,5 @@ trait AppContext {
   lazy val usersService = new UsersService(databaseService)
   lazy val authService = new AuthService(databaseService, usersService)
   lazy val eventService = new EventService(cxElasticClient, cxIndexType)
-  lazy val eventSchema = new EventSchemaFactory(usersService, authService, eventService).EventSchema
-  lazy val httpService = new HttpService(usersService, authService, eventSchema)
+  lazy val httpService = new HttpService(usersService, authService, eventService)
 }

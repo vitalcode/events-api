@@ -11,14 +11,14 @@ import sangria.marshalling.sprayJson._
 import sangria.parser.QueryParser
 import sangria.schema.Schema
 import spray.json.{JsObject, JsString, JsValue, _}
-import uk.vitalcode.events.api.http.{GraphqlContext, SecurityMiddleware}
+import uk.vitalcode.events.api.http.{AuthContext, SecurityMiddleware}
 import uk.vitalcode.events.api.models.{AuthenticationException, AuthorisationException}
 import uk.vitalcode.events.api.utils.Config
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-class EventsServiceRoute(eventSchema: Schema[GraphqlContext, Unit])
+class EventsServiceRoute(eventSchema: Schema[AuthContext, Unit])
                         (implicit executionContext: ExecutionContext) extends Config {
 
 
@@ -55,8 +55,7 @@ class EventsServiceRoute(eventSchema: Schema[GraphqlContext, Unit])
             case _ ⇒ JsObject.empty
           }
 
-          val eventContext = new GraphqlContext()
-          eventContext.setSubject(token)
+          val eventContext = AuthContext().withToken(token)
 
           QueryParser.parse(query) match {
 

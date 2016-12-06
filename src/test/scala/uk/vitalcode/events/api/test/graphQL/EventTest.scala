@@ -108,7 +108,7 @@ class EventTest extends WordSpec with Matchers with BaseTest {
         graphCheck(route, query, None, JsObject("eventId" → JsString("1"))) {
           val error = responseAs[GraphqlError]
           status shouldEqual StatusCodes.OK
-          error.message shouldBe "Invalid token (SecurityMiddleware)"
+          error.message shouldBe "Invalid token"
           error.path shouldBe "event"
         }
       }

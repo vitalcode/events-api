@@ -60,9 +60,6 @@ class AuthTest extends BaseTest {
         login(route, user) {
           status shouldEqual StatusCodes.OK
           tokenResponseToUser(responseAs[JsValue]) shouldBe user
-
-
-          //JwtUtils.decode(responseAs[JsValue]) shouldBe tokenResponse(userToken(user))
         }
       }
     }
@@ -108,7 +105,7 @@ class AuthTest extends BaseTest {
               "me": null
             },
             "errors": [{
-              "message": "Invalid token (SecurityMiddleware)",
+              "message": "Invalid token",
               "path": ["me"],
               "locations": [{
                 "line": 1,
