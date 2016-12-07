@@ -4,7 +4,7 @@ Expose events data as GraphQL web service
 #### Vars
 ```
 PROJECT_NAME=events-api
-PROJECT_VERSION=0.0.1
+PROJECT_VERSION=
 HOST_SERVER=
 PSQL_URL=
 PSQL_USER=
