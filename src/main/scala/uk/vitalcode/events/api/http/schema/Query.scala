@@ -1,7 +1,7 @@
 package uk.vitalcode.events.api.http.schema
 
 import sangria.schema.{Field, ListType, ObjectType, OptionType, _}
-import uk.vitalcode.events.api.http.{Authorised, AuthContext}
+import uk.vitalcode.events.api.http.{AuthContext, Authorised}
 import uk.vitalcode.events.api.models.{Event, Page, UserEntity}
 import uk.vitalcode.events.api.services.{EventService, UsersService}
 
@@ -31,22 +31,56 @@ trait Query extends DateType with EventCategoryType {
   )
 
   private val Event = ObjectType(
-    "Event",
-    "Just Event",
+    "Event", "Just Event",
     fields = fields[Unit, Event](
       Field("id", StringType,
-        Some("The id of the droid."),
+        Some("event id"),
         tags = ProjectionName("_id") :: Nil,
-        resolve = _.value.id),
+        resolve = _.value.id
+      ),
+      Field("url", OptionType(ListType(StringType)),
+        Some("event url"),
+        resolve = _.value.url
+      ),
+      Field("title", OptionType(ListType(StringType)),
+        Some("event title"),
+        resolve = _.value.title
+      ),
+      Field("from", OptionType(ListType(DateType)),
+        Some("when event starts"),
+        resolve = _.value.from
+      ),
+      Field("to", OptionType(ListType(DateType)),
+        Some("when event finishes"),
+        resolve = _.value.to
+      ),
       Field("category", OptionType(ListType(EventCategoryType)),
         Some("event category"),
-        resolve = _.value.category),
+        resolve = _.value.category
+      ),
       Field("description", OptionType(ListType(StringType)),
         Some("event description"),
-        resolve = _.value.description),
-      Field("from", OptionType(ListType(DateType)),
-        Some("event from"),
-        resolve = _.value.from
+        resolve = _.value.description
+      ),
+      Field("image", OptionType(ListType(StringType)),
+        Some("event image url"),
+        resolve = _.value.image
+      ),
+      Field("cost", OptionType(ListType(StringType)),
+        Some("event cost"),
+        resolve = _.value.cost
+      ),
+      Field("telephone", OptionType(ListType(StringType)),
+        Some("event contact telephone"),
+        resolve = _.value.telephone
+      ),
+      Field("venue", OptionType(ListType(StringType)),
+        Some("event venue"),
+        resolve = _.value.venue
+      ),
+      Field("venue-category", OptionType(ListType(StringType)),
+        Some("venue category"),
+        resolve = _.value.venueCategory
       )
     )
   )

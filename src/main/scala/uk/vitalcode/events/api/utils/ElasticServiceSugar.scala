@@ -11,15 +11,31 @@ import scala.collection.JavaConversions._
 
 trait ElasticServiceSugar {
 
+  private def timeFormatter(value: String) = {
+    LocalDateTime.parse(value, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+  }
+
   implicit object CharacterHitAs extends HitAs[Event] {
     override def as(hit: RichSearchHit): Event = {
       Event(
         id = hit.id,
+        url = mapElasticFieldValue(hit, "url"),
+        title = mapElasticFieldValue(hit, "title"),
+        from = mapElasticFieldValue(hit, "from", v => timeFormatter(v)),
+        to = mapElasticFieldValue(hit, "to", v => timeFormatter(v)),
         category = mapElasticFieldValue(hit, "category", v => Category.withName(v.toUpperCase)), // TODO Use upper case category in ES
-        description = mapElasticFieldValue(hit, "description", v => v),
-        from = mapElasticFieldValue(hit, "from", v => LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+        description = mapElasticFieldValue(hit, "description"),
+        image = mapElasticFieldValue(hit, "image"),
+        cost = mapElasticFieldValue(hit, "cost"),
+        telephone = mapElasticFieldValue(hit, "telephone"),
+        venue = mapElasticFieldValue(hit, "venue"),
+        venueCategory = mapElasticFieldValue(hit, "venue-category")
       )
     }
+  }
+
+  def mapElasticFieldValue(hit: RichSearchHit, field: String): Option[Seq[String]] = {
+    mapElasticFieldValue(hit, field, identity[String])
   }
 
   def mapElasticFieldValue[T](hit: RichSearchHit, field: String, mapper: String => T): Option[Seq[T]] = {
