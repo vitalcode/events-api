@@ -78,7 +78,7 @@ trait Query extends DateType with EventCategoryType {
         Some("event venue"),
         resolve = _.value.venue
       ),
-      Field("venue-category", OptionType(ListType(StringType)),
+      Field("venueCategory", OptionType(ListType(StringType)),
         Some("venue category"),
         resolve = _.value.venueCategory
       )
