@@ -4,10 +4,10 @@ import sangria.schema.{EnumType, EnumValue}
 import uk.vitalcode.events.model.Category
 import uk.vitalcode.events.model.Category._
 
-trait EventCategoryType {
+trait CategoryType {
 
-  val EventCategoryType = EnumType[Category](
-    "EventCategory",
+  val CategoryType = EnumType[Category](
+    "Category",
     Some("Event category"),
     Category.values.toList.map(category =>
       EnumValue(category.toString,

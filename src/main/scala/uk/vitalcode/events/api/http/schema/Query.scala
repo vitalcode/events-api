@@ -5,7 +5,7 @@ import uk.vitalcode.events.api.http.{AuthContext, Authorised}
 import uk.vitalcode.events.api.models.{Event, Page, UserEntity}
 import uk.vitalcode.events.api.services.{EventService, UsersService}
 
-trait Query extends DateType with EventCategoryType {
+trait Query extends DateType with CategoryType {
 
   val usersService: UsersService
   val eventService: EventService
@@ -13,7 +13,7 @@ trait Query extends DateType with EventCategoryType {
   private val ID = Argument("id", StringType, description = "id of the character")
   private val Date = Argument("date", OptionInputType(DateType), description = "event search date")
   private val Clue = Argument("clue", OptionInputType(StringType), description = "event search clue")
-  private val CategoryArg = Argument("category", OptionInputType(EventCategoryType), description = "event search category")
+  private val CategoryArg = Argument("category", OptionInputType(ListInputType(CategoryType)), description = "event search category")
   private val Start = Argument("start", IntType, description = "event list start")
   private val Limit = Argument("limit", IntType, description = "event list limit")
 
@@ -54,7 +54,7 @@ trait Query extends DateType with EventCategoryType {
         Some("when event finishes"),
         resolve = _.value.to
       ),
-      Field("category", OptionType(ListType(EventCategoryType)),
+      Field("category", OptionType(ListType(CategoryType)),
         Some("event category"),
         resolve = _.value.category
       ),

@@ -46,7 +46,7 @@ trait ElasticServiceSugar {
     else None
   }
 
-  def appendQuery[T](date: Option[T], must: Seq[QueryDefinition], fn: T => QueryDefinition): Seq[QueryDefinition] = {
-    date.map(e => must :+ fn(e)) getOrElse must
+  def appendQuery[T](value: Option[T], must: Seq[QueryDefinition], fn: T => QueryDefinition): Seq[QueryDefinition] = {
+    value.map(e => must :+ fn(e)) getOrElse must
   }
 }
