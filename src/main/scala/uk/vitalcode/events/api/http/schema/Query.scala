@@ -117,7 +117,7 @@ trait Query extends DateType with CategoryType {
       resolve = ctx => eventService.getEvents(
         date = ctx.arg(Date),
         clue = ctx.arg(Clue),
-        category = ctx.arg(CategoryArg),
+        categories = ctx.arg(CategoryArg),
         start = ctx.arg(Start),
         limit = ctx.arg(Limit)).get)
   ))

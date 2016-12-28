@@ -26,7 +26,7 @@ class EventService(val client: ElasticClient, indexType: IndexType) extends Elas
 
   def getEvents(date: Option[LocalDateTime],
                 clue: Option[String],
-                category: Option[Seq[Category]],
+                categories: Option[Seq[Category]],
                 start: Int,
                 limit: Int,
                 fieldSet: String*): Option[Page[Event]] = {
@@ -34,8 +34,8 @@ class EventService(val client: ElasticClient, indexType: IndexType) extends Elas
     var mustQuery = Seq.empty[QueryDefinition]
     mustQuery = appendQuery(date, mustQuery, (d: LocalDateTime) => rangeQuery("from") includeLower true from d.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
     mustQuery = appendQuery(clue, mustQuery, (c: String) => multiMatchQuery(c) fields("description", "title", "venue") operator "and")
-    mustQuery = appendQuery(category, mustQuery,
-      (cat: Seq[Category]) => must(termQuery("category", cat.toString.toLowerCase)) // TODO Use upper case category in ES?
+    mustQuery = appendQuery(categories, mustQuery,
+      (cats: Seq[Category]) => should(cats.map(cat => termQuery("category", cat.toString.toLowerCase))) // TODO Use upper case category in ES?
     )
 
     val response = client.execute {

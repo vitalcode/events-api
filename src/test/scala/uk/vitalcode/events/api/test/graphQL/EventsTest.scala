@@ -143,7 +143,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
       "requesting events using date, clue and category filter" should {
         val query =
           graphql"""
-            query FetchEvents($$date: Date, $$clue: String, $$category: [Category], $$start: Int!, $$limit: Int!) {
+            query FetchEvents($$date: Date, $$clue: String, $$category: [Category!], $$start: Int!, $$limit: Int!) {
               events(date: $$date, clue: $$clue, category: $$category, start: $$start, limit: $$limit) {
                 total
                 items {
@@ -187,7 +187,7 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
               }""".parseJson
           }
         }
-        "return events for specified category" in new Context {
+        "return events for specified single category" in new Context {
           val subject = basicUser(testUsers)
           graphCheck(route, query, Some(subject),
             vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "category" -> JsArray(JsString("FAMILY")))
@@ -200,6 +200,24 @@ class EventsTest extends WordSpec with Matchers with BaseTest {
                   "events": {
                     "total": 2,
                     "items": [{"id": "1"}, {"id": "3"}]
+                  }
+                }
+              }""".parseJson
+          }
+        }
+        "return events for specified multiple categories" in new Context {
+          val subject = basicUser(testUsers)
+          graphCheck(route, query, Some(subject),
+            vars = JsObject("start" → JsNumber(0), "limit" → JsNumber(10), "category" -> JsArray(JsString("FAMILY"), JsString("SPORT")))
+          ) {
+            status shouldEqual StatusCodes.OK
+            responseAs[JsValue] shouldBe
+              """
+              {
+                "data": {
+                  "events": {
+                    "total": 3,
+                    "items": [{"id": "1"}, {"id": "3"}, {"id": "4"}]
                   }
                 }
               }""".parseJson
