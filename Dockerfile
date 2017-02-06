@@ -1,8 +1,25 @@
-FROM java:latest
-WORKDIR /opt/docker
-ADD opt /opt
-RUN ["chown", "-R", "daemon:daemon", "."]
+FROM openjdk:8
+MAINTAINER vitalcode
+
+ENV SBT_VERSION  0.13.8
+
+ADD . /data
+WORKDIR /data
+
+RUN \
+  curl -L -o sbt-$SBT_VERSION.deb http://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb && \
+  dpkg -i sbt-$SBT_VERSION.deb && \
+  rm sbt-$SBT_VERSION.deb && \
+  apt-get update && \
+  apt-get install sbt && \
+  sbt sbtVersion
+
+
+RUN echo "==> fetch all sbt jars from repo..."             && \
+    echo "==> [CAUTION] this may take several minutes!!!"  && \
+    sbt
+
 EXPOSE 9000
-USER daemon
-ENTRYPOINT ["bin/events-api", "-Dconfig.resource=docker.conf"]
-CMD []
+
+ENTRYPOINT ["sbt"]
+CMD ["run"]
