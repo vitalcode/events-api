@@ -13,8 +13,7 @@ RUN \
 ADD . /data
 WORKDIR /data
 
-RUN echo "==> fetch all dependencies from repo..."         && \
-    echo "==> [CAUTION] this may take several minutes!!!"  && \
+RUN echo "==> fetch all dependencies from repo..." && \
     sbt clean compile
 
 EXPOSE 9000

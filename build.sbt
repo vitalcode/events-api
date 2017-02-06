@@ -46,9 +46,9 @@ libraryDependencies ++= {
 
     "com.softwaremill.macwire" %% "macros" % macwireV % "provided",
     "com.softwaremill.macwire" %% "util" % macwireV,
-    "com.softwaremill.macwire" %% "proxy" % macwireV,
+    "com.softwaremill.macwire" %% "proxy" % macwireV
 
-    "vitalcode" %% "events-model" % eventsModelV
+    //"vitalcode" %% "events-model" % eventsModelV
   )
 }
 
