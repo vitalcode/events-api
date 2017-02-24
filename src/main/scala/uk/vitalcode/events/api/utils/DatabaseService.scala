@@ -23,8 +23,7 @@ class DatabaseService(jdbcUrl: String, dbUser: String, dbPassword: String) {
   val db = Database.forURL(
     url = jdbcUrl,
     user = dbUser,
-    password = dbPassword,
-    driver = "org.postgresql.Driver"
+    password = dbPassword
   )
   db.createSession()
 }
