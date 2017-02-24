@@ -23,7 +23,8 @@ libraryDependencies ++= {
     "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
     "org.flywaydb" % "flyway-core" % "3.2.1",
 
-    "com.zaxxer" % "HikariCP" % "2.4.5",
+    "org.postgresql" % "postgresql" % "9.4.1212.jre7",
+    "com.zaxxer" % "HikariCP" % "2.6.0",
     "org.slf4j" % "slf4j-nop" % "1.6.4",
     "ch.qos.logback" % "logback-classic" % "1.1.7",
 
